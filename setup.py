@@ -17,7 +17,6 @@ requirements = [
     "djangorestframework",
     "django-environ",
     "django-filter",
-    "openai",
     "jsonschema",
 ]
 
