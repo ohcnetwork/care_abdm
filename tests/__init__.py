@@ -1,1 +1,1 @@
-"""Unit test package for care_abdm."""
+"""Unit test package for abdm."""

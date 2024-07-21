@@ -22,7 +22,7 @@ To install care abdm, you can add the plugin config in [care/plug_config.py](htt
 ...
 
 abdm_plug = Plug(
-    name="care_abdm",
+    name="abdm",
     package_name="git+https://github.com/coronasafe/care_abdm.git",
     version="@master",
     configs={
