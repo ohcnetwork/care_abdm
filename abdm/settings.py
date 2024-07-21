@@ -6,8 +6,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.signals import setting_changed
 from django.dispatch import receiver
 from rest_framework.settings import perform_import
-
-from abdm.settings import settings
+from django.conf import settings
 
 env = environ.Env()
 
