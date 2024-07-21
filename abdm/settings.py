@@ -1,7 +1,7 @@
 from typing import Any
 
 import environ
-from care_scribe.apps import PLUGIN_NAME
+from abdm.apps import PLUGIN_NAME
 from django.core.exceptions import ImproperlyConfigured
 from django.core.signals import setting_changed
 from django.dispatch import receiver
