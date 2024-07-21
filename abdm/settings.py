@@ -1,12 +1,13 @@
 from typing import Any
 
 import environ
-from abdm.apps import PLUGIN_NAME
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.signals import setting_changed
 from django.dispatch import receiver
 from rest_framework.settings import perform_import
-from django.conf import settings
+
+from abdm.apps import PLUGIN_NAME
 
 env = environ.Env()
 

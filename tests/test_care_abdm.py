@@ -6,7 +6,6 @@
 import unittest
 
 
-
 class TestCare_abdm(unittest.TestCase):
     """Tests for `abdm` package."""
 
