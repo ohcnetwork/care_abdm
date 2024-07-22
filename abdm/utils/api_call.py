@@ -14,7 +14,7 @@ from rest_framework.exceptions import ValidationError
 
 from abdm.models import AbhaNumber
 from abdm.service.request import Request
-from abdm.settings import settings
+from abdm.settings import plugin_settings as settings
 
 GATEWAY_API_URL = settings.ABDM_URL
 HEALTH_SERVICE_API_URL = settings.HEALTH_SERVICE_API_URL

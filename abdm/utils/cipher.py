@@ -2,7 +2,7 @@ import json
 
 import requests
 
-from abdm.settings import settings
+from abdm.settings import plugin_settings as settings
 
 
 class Cipher:

@@ -9,7 +9,7 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 import abdm.models.consent
-from abdm.settings import settings
+from abdm.settings import plugin_settings as settings
 
 
 class Migration(migrations.Migration):

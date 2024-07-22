@@ -4,7 +4,7 @@ import logging
 import requests
 from django.core.cache import cache
 
-from abdm.settings import settings
+from abdm.settings import plugin_settings as settings
 
 ABDM_GATEWAY_URL = settings.ABDM_URL + "/gateway"
 ABDM_TOKEN_URL = ABDM_GATEWAY_URL + "/v0.5/sessions"

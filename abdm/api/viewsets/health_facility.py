@@ -16,7 +16,7 @@ from rest_framework.viewsets import GenericViewSet
 
 from abdm.api.serializers.health_facility import HealthFacilitySerializer
 from abdm.models import HealthFacility
-from abdm.settings import settings
+from abdm.settings import plugin_settings as settings
 from abdm.utils.api_call import Facility
 
 

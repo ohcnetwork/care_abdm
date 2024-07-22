@@ -8,7 +8,7 @@ from care.users.models import User
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
 
-from abdm.settings import settings
+from abdm.settings import plugin_settings as settings
 
 logger = logging.getLogger(__name__)
 

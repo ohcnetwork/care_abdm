@@ -8,7 +8,7 @@ from abdm.models.abha_number import AbhaNumber
 from abdm.models.base import Purpose
 from abdm.models.consent import ConsentArtefact, ConsentRequest
 from abdm.service.request import Request
-from abdm.settings import settings
+from abdm.settings import plugin_settings as settings
 
 
 class Gateway:
