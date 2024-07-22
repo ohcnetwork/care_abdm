@@ -117,6 +117,7 @@ DEFAULTS = {
     "ABDM_USERNAME": "abdm_user_internal",
     "X_CM_ID": "sbx",
     "FIDELIUS_URL": "http://fidelius:8090",
+    "AUTH_USER_MODEL": "users.User"
 }
 
 plugin_settings = PluginSettings(
