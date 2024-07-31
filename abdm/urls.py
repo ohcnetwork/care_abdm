@@ -37,17 +37,17 @@ class OptionalSlashRouter(SimpleRouter):
 router = OptionalSlashRouter()
 
 
-router.register("abdm/healthid", ABDMHealthIDViewSet, basename="abdm-healthid")
-router.register("abdm/consent", ConsentViewSet, basename="abdm-consent")
+router.register("healthid", ABDMHealthIDViewSet, basename="abdm-healthid")
+router.register("consent", ConsentViewSet, basename="abdm-consent")
 router.register(
-    "abdm/health_information",
+    "health_information",
     HealthInformationViewSet,
     basename="abdm-healthinformation",
 )
-router.register("abdm/patients", PatientsViewSet, basename="abdm-patients")
-router.register("abdm/abha_numbers", AbhaNumberViewSet, basename="abdm-abhanumber")
+router.register("patients", PatientsViewSet, basename="abdm-patients")
+router.register("abha_numbers", AbhaNumberViewSet, basename="abdm-abhanumber")
 router.register(
-    "abdm/health_facility", HealthFacilityViewSet, basename="abdm-healthfacility"
+    "health_facility", HealthFacilityViewSet, basename="abdm-healthfacility"
 )
 
 
