@@ -71,6 +71,7 @@ class Request:
             **(self.auth_header() or {}),
         }
 
+    # TODO: retry on token expiry
     def get(self, path, params=None, headers=None, auth=None):
         url = self.url + path
         headers = self.headers(headers, auth)
@@ -95,7 +96,7 @@ class Request:
     def _handle_response(self, response: requests.Response):
         def custom_json():
             try:
-                return response.json()
+                return json.loads(response.text)
             except json.JSONDecodeError as json_err:
                 logger.error(f"JSON Decode error: {json_err}")
                 return {"error": response.text}

@@ -5,5 +5,8 @@ PLUGIN_NAME = "abdm"
 
 
 class AbdmConfig(AppConfig):
-    name = "abdm"
+    name = PLUGIN_NAME
     verbose_name = _("ABDM Integration")
+
+    def ready(self):
+        import abdm.receivers

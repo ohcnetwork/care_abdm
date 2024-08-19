@@ -1,8 +1,5 @@
 import logging
 
-from care.utils.queryset.facility import get_facility_queryset
-from config.auth_views import CaptchaRequiredException
-from config.ratelimit import USER_READABLE_RATE_LIMIT_TIME, ratelimit
 from django_filters import rest_framework as filters
 from rest_framework import status
 from rest_framework.decorators import action
@@ -17,6 +14,10 @@ from abdm.authentication import ABDMAuthentication
 from abdm.models.base import Status
 from abdm.models.consent import ConsentArtefact, ConsentRequest
 from abdm.service.gateway import Gateway
+from abdm.service.v3.gateway import GatewayService
+from care.utils.queryset.facility import get_facility_queryset
+from config.auth_views import CaptchaRequiredException
+from config.ratelimit import USER_READABLE_RATE_LIMIT_TIME, ratelimit
 
 logger = logging.getLogger(__name__)
 
@@ -69,11 +70,13 @@ class ConsentViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin):
 
         consent = ConsentRequest(**serializer.validated_data, requester=request.user)
 
-        response = Gateway().consent_requests__init(consent)
-        if response.status_code != 202:
-            return Response(response.json(), status=response.status_code)
-
+        GatewayService.consent__request__init(
+            {
+                "consent": consent,
+            }
+        )
         consent.save()
+
         return Response(
             ConsentRequestSerializer(consent).data, status=status.HTTP_201_CREATED
         )
