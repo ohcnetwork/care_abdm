@@ -36,28 +36,24 @@ class Request:
                 "Accept": "application/json",
             }
 
-            logger.info("No Token in Cache")
-            response = requests.post(ABDM_TOKEN_URL, data=data, headers=headers)
+            response = requests.post(
+                ABDM_TOKEN_URL, data=data, headers=headers, timeout=10
+            )
 
             if response.status_code < 300:
                 if response.headers["Content-Type"] != "application/json":
-                    logger.info(
-                        f"Unsupported Content-Type: {response.headers['Content-Type']}"
+                    logger.error(
+                        f"Invalid content type: {response.headers['Content-Type']}"
                     )
-                    logger.info(f"Response: {response.text}")
-
                     return None
                 else:
                     data = response.json()
                     token = data["accessToken"]
                     expires_in = data["expiresIn"]
 
-                    logger.info(f"New Token: {token}")
-                    logger.info(f"Expires in: {expires_in}")
-
                     cache.set(ABDM_TOKEN_CACHE_KEY, token, expires_in)
             else:
-                logger.info(f"Bad Response: {response.text}")
+                logger.error(f"Error while fetching token: {response.text}")
                 return None
 
         return {"Authorization": f"Bearer {token}"}
@@ -76,9 +72,7 @@ class Request:
         url = self.url + path
         headers = self.headers(headers, auth)
 
-        logger.info(f"GET: {url}")
-        response = requests.get(url, headers=headers, params=params)
-        logger.info(f"{response.status_code} Response: {response.text}")
+        response = requests.get(url, headers=headers, params=params, timeout=10)
 
         return self._handle_response(response)
 
@@ -87,9 +81,7 @@ class Request:
         payload = json.dumps(data)
         headers = self.headers(headers, auth)
 
-        logger.info(f"POST: {url}, {headers}, {data}")
-        response = requests.post(url, data=payload, headers=headers)
-        logger.info(f"{response.status_code} Response: {response.text}")
+        response = requests.post(url, data=payload, headers=headers, timeout=10)
 
         return self._handle_response(response)
 
