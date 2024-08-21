@@ -186,11 +186,11 @@ class DataFlowHealthInformationRequestSerializer(Serializer):
     consent_artefact = UUIDField(required=True)
 
 
-class HealthInformationOnRequestSerializer(Serializer):
+class HiuHealthInformationOnRequestSerializer(Serializer):
     class HiRequestSerializer(Serializer):
         transactionId = UUIDField(required=True)
         sessionStatus = ChoiceField(
-            choices=["PENDING", "TRANSFERRED", "FAILED"], required=True
+            choices=["REQUESTED", "ACKNOWLEDGED"], required=True
         )
 
     class ErrorSerializer(Serializer):
@@ -201,7 +201,7 @@ class HealthInformationOnRequestSerializer(Serializer):
         requestId = UUIDField(required=True)
 
     hiRequest = HiRequestSerializer(required=False)
-    error = ErrorSerializer(required=False)
+    error = ErrorSerializer(required=False, allow_null=True)
     response = ResponseSerializer(required=True)
 
 
@@ -221,7 +221,7 @@ class HiuHealthInformationTransferSerializer(Serializer):
         content = CharField(required=False)
         link = CharField(required=False)
         media = CharField(required=False)
-        checksum = CharField(required=False)
+        checksum = CharField(required=False, allow_blank=True)
         careContextReference = CharField(required=True)
 
     transactionId = UUIDField(required=True)

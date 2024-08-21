@@ -13,11 +13,11 @@ from abdm.api.v3.serializers.hiu import (
     ConsentFetchSerializer,
     ConsentRequestStatusSerializer,
     DataFlowHealthInformationRequestSerializer,
-    HealthInformationOnRequestSerializer,
     HiuConsentOnFetchSerializer,
     HiuConsentRequestNotifySerializer,
     HiuConsentRequestOnInitSerializer,
     HiuConsentRequestOnStatusSerializer,
+    HiuHealthInformationOnRequestSerializer,
     HiuHealthInformationTransferSerializer,
     IdentityAuthenticationSerializer,
 )
@@ -173,7 +173,7 @@ class HIUCallbackViewSet(GenericViewSet):
         "hiu__consent__request__on_status": HiuConsentRequestOnStatusSerializer,
         "hiu__consent__request__notify": HiuConsentRequestNotifySerializer,
         "hiu__consent__on_fetch": HiuConsentOnFetchSerializer,
-        "health_information__on_request": HealthInformationOnRequestSerializer,
+        "hiu__health_information__on_request": HiuHealthInformationOnRequestSerializer,
         "hiu__health_information__transfer": HiuHealthInformationTransferSerializer,
     }
 
@@ -329,7 +329,7 @@ class HIUCallbackViewSet(GenericViewSet):
 
         # updating an existing consent artefact
         (artefact, _) = ConsentArtefact.objects.update_or_create(
-            consent_id=consent_detail.get("consentId"),
+            external_id=consent_detail.get("consentId"),
             defaults={
                 "hip": consent_detail.get("hip", {}).get("id"),
                 "hiu": consent_detail.get("hiu", {}).get("id"),
@@ -364,8 +364,10 @@ class HIUCallbackViewSet(GenericViewSet):
 
         return Response(status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=["POST"], url_path="health-information/on-request")
-    def health_information__on_request(self, request):
+    @action(
+        detail=False, methods=["POST"], url_path="hiu/health-information/on-request"
+    )
+    def hiu__health_information__on_request(self, request):
         validated_data = self.validate_request(request)
 
         if "hiRequest" in validated_data:
@@ -450,7 +452,7 @@ class HIUCallbackViewSet(GenericViewSet):
                 "notifier__id": artefact.hiu,
                 "status": "TRANSFERRED",
                 "hip_id": artefact.hip,
-                "consultations": list(
+                "consultation_ids": list(
                     map(lambda x: x.get("care_context_reference"), entries)
                 ),
             }

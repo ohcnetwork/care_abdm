@@ -43,7 +43,7 @@ class ABDMAuthentication(JWTAuthentication):
         try:
             return self.open_id_authenticate(url, token)
         except Exception as e:
-            logger.info(e, "Token: ", token)
+            logger.error(f"Error validating ABDM authorization token: {e}")
             raise InvalidToken({"detail": f"Invalid Authorization token: {e}"})
 
     def get_user(self, validated_token):
@@ -52,7 +52,7 @@ class ABDMAuthentication(JWTAuthentication):
             password = User.objects.make_random_password()
             user = User(
                 username=settings.ABDM_USERNAME,
-                email="hcx@coronasafe.network",
+                email="abdm@coronasafe.network",
                 password=f"{password}123",
                 gender=3,
                 phone_number="917777777777",

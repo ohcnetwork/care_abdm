@@ -74,6 +74,12 @@ class Request:
 
         response = requests.get(url, headers=headers, params=params, timeout=10)
 
+        if response.status_code == 400:
+            result = response.json()
+            if "code" in result and result["code"] == "900901":
+                cache.delete(ABDM_TOKEN_CACHE_KEY)
+                return self.post(path, params, headers, auth)
+
         return self._handle_response(response)
 
     def post(self, path, data=None, headers=None, auth=None):
@@ -82,6 +88,12 @@ class Request:
         headers = self.headers(headers, auth)
 
         response = requests.post(url, data=payload, headers=headers, timeout=10)
+
+        if response.status_code == 400:
+            result = response.json()
+            if "code" in result and result["code"] == "900901":
+                cache.delete(ABDM_TOKEN_CACHE_KEY)
+                return self.post(path, data, headers, auth)
 
         return self._handle_response(response)
 

@@ -441,21 +441,16 @@ class GatewayService:
         auth_header = Request("").auth_header()
         headers = {
             "Content-Type": "application/json",
+            "Accept": "application/json",
             **auth_header,
         }
 
         path = data.get("url", "")
         response = requests.post(
             path,
-            json=json.dumps(payload),
+            json=payload,
             headers=headers,
         )
-
-        print("________________________________________")
-        print(payload)
-        print(response.status_code)
-        print(response.json())
-        print("________________________________________")
 
         if response.status_code != 202:
             raise ABDMAPIException(detail=GatewayService.handle_error(response.json()))
@@ -738,7 +733,7 @@ class GatewayService:
                     "to": artefact.to_time.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                 },
                 "dataPushUrl": settings.BACKEND_DOMAIN
-                + "/api/v3/hiu/health-information/transfer",
+                + "/api/abdm/api/v3/hiu/health-information/transfer",
                 "keyMaterial": {
                     "cryptoAlg": artefact.key_material_algorithm,
                     "curve": artefact.key_material_curve,
