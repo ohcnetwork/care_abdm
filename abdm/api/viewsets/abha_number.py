@@ -1,4 +1,3 @@
-from care.utils.queryset.patient import get_patient_queryset
 from django.db.models import Q
 from django.http import Http404
 from rest_framework.decorators import action
@@ -9,7 +8,7 @@ from rest_framework.viewsets import GenericViewSet
 
 from abdm.api.serializers.abha_number import AbhaNumberSerializer
 from abdm.models import AbhaNumber
-from abdm.utils.api_call import HealthIdGateway
+from care.utils.queryset.patient import get_patient_queryset
 
 
 class AbhaNumberViewSet(
@@ -40,17 +39,3 @@ class AbhaNumberViewSet(
         self.check_object_permissions(self.request, instance)
 
         return instance
-
-    @action(detail=True, methods=["GET"])
-    def qr_code(self, request, *args, **kwargs):
-        obj = self.get_object()
-        serializer = self.get_serializer(obj)
-        response = HealthIdGateway().get_qr_code(serializer.data)
-        return Response(response)
-
-    @action(detail=True, methods=["GET"])
-    def profile(self, request, *args, **kwargs):
-        obj = self.get_object()
-        serializer = self.get_serializer(obj)
-        response = HealthIdGateway().get_profile(serializer.data)
-        return Response(response)

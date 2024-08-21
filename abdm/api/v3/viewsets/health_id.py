@@ -22,7 +22,6 @@ from abdm.api.v3.serializers.health_id import (
 )
 from abdm.models import AbhaNumber
 from abdm.service.v3.health_id import HealthIdService
-from care.facility.api.serializers.patient import PatientDetailSerializer
 from care.utils.queryset.patient import get_patient_queryset
 
 
