@@ -16,7 +16,7 @@ from rest_framework.serializers import (
 from abdm.models import (
     AccessMode,
     FrequencyUnit,
-    HealthInformationTypes,
+    HealthInformationType,
     Purpose,
     Status,
 )
@@ -91,7 +91,7 @@ class HipLinkCareContextInitSerializer(Serializer):
         referenceNumber = CharField(max_length=50, required=True)
         careContexts = CareContextSerializer(many=True, required=True)
         hiType = ChoiceField(
-            choices=HealthInformationTypes.choices,
+            choices=HealthInformationType.choices,
             required=True,
         )
         count = IntegerField(required=True)
@@ -167,7 +167,7 @@ class ConsentRequestHipNotifySerializer(Serializer):
             hip = HipSerializer(required=True)
             consentManager = ConsentManagerSerializer(required=True)
             hiTypes = ListField(
-                child=ChoiceField(choices=HealthInformationTypes.choices),
+                child=ChoiceField(choices=HealthInformationType.choices),
                 required=True,
             )
             permission = PermissionSerializer(required=True)

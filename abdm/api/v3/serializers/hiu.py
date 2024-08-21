@@ -11,7 +11,7 @@ from rest_framework.serializers import (
     ValidationError,
 )
 
-from abdm.models.base import AccessMode, HealthInformationTypes, Purpose, Status
+from abdm.models.base import AccessMode, HealthInformationType, Purpose, Status
 
 
 class IdentityAuthenticationSerializer(Serializer):
@@ -159,7 +159,7 @@ class HiuConsentOnFetchSerializer(Serializer):
             hip = HipSerializer(required=False)
             hiu = HiuSerializer(required=True)
             hiTypes = ListField(
-                child=ChoiceField(choices=HealthInformationTypes.choices), required=True
+                child=ChoiceField(choices=HealthInformationType.choices), required=True
             )
             patient = PatientSerializer(required=True)
             purpose = PurposeSerializer(required=True)

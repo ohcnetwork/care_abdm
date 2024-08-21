@@ -1,7 +1,3 @@
-from care.facility.models.file_upload import FileUpload
-from care.users.models import User
-from care.utils.models.base import BaseModel
-from care.utils.models.validators import JSONFieldSchemaValidator
 from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -11,12 +7,16 @@ from abdm.models import AbhaNumber
 from abdm.models.base import (
     AccessMode,
     FrequencyUnit,
-    HealthInformationTypes,
+    HealthInformationType,
     Purpose,
     Status,
 )
 from abdm.models.json_schema import CARE_CONTEXTS
 from abdm.utils.cipher import Cipher
+from care.facility.models.file_upload import FileUpload
+from care.users.models import User
+from care.utils.models.base import BaseModel
+from care.utils.models.validators import JSONFieldSchemaValidator
 
 
 class Consent(BaseModel):
@@ -49,7 +49,7 @@ class Consent(BaseModel):
         choices=Purpose.choices, max_length=20, default=Purpose.CARE_MANAGEMENT.value
     )
     hi_types = ArrayField(
-        models.CharField(choices=HealthInformationTypes.choices, max_length=20),
+        models.CharField(choices=HealthInformationType.choices, max_length=20),
         default=list,
     )
 
