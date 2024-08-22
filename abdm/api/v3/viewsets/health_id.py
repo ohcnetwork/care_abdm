@@ -395,6 +395,15 @@ class HealthIdViewSet(GenericViewSet):
                 }
             )
 
+            if result.get("authResult") == "failed":
+                return Response(
+                    {
+                        "transaction_id": result.get("txnId"),
+                        "detail": result.get("message"),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             if type == "mobile":
                 user_verification_result = HealthIdService.profile__login__verify__user(
                     {

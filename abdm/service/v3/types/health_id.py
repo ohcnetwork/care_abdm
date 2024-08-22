@@ -180,7 +180,7 @@ class ProfileLoginVerifyBody(TypedDict):
 
 class ProfileLoginVerifyResponse(TypedDict):
     txnId: str
-    authResult: Literal["success", "failure"]
+    authResult: Literal["success", "failed"]
     message: str
     token: str
     expiresIn: int
