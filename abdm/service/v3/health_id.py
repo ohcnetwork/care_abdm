@@ -50,9 +50,9 @@ class HealthIdService:
             return error["message"]
 
         # { field_name: "error message" }
-        if isinstance(error, dict) and len(error) == 1:
-            error.pop("code")
-            error.pop("timestamp")
+        if isinstance(error, dict) and len(error) >= 1:
+            error.pop("code", None)
+            error.pop("timestamp", None)
             return "".join(list(map(lambda x: str(x), list(error.values()))))
 
         return "Unknown error occurred at ABDM's end while processing the request. Please try again later."
