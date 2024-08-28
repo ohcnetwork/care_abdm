@@ -1,13 +1,12 @@
-import json
-
-import requests
-
-from abdm.settings import plugin_settings as settings
+from abdm.utils.fidelius import (
+    CryptoController,
+    DecryptionRequest,
+    EncryptionRequest,
+    KeyMaterial,
+)
 
 
 class Cipher:
-    server_url = settings.FIDELIUS_URL
-
     def __init__(
         self,
         external_public_key,
@@ -26,71 +25,51 @@ class Cipher:
         self.key_to_share = None
 
     def generate_key_pair(self):
-        response = requests.get(f"{self.server_url}/keys/generate")
+        key_material = KeyMaterial.generate()
 
-        if response.status_code == 200:
-            key_material = response.json()
+        self.internal_private_key = key_material.private_key
+        self.internal_public_key = key_material.public_key
+        self.internal_nonce = key_material.nonce
+        self.key_to_share = key_material.x509_public_key
 
-            self.internal_private_key = key_material["privateKey"]
-            self.internal_public_key = key_material["publicKey"]
-            self.internal_nonce = key_material["nonce"]
+        return {
+            "privateKey": self.internal_private_key,
+            "publicKey": self.internal_public_key,
+            "nonce": self.internal_nonce,
+        }
 
-            return key_material
-
-        return None
-
-    def encrypt(self, paylaod):
+    def encrypt(self, payload):
         if not self.internal_private_key:
             key_material = self.generate_key_pair()
 
             if not key_material:
                 return None
 
-        response = requests.post(
-            f"{self.server_url}/encrypt",
-            headers={"Content-Type": "application/json"},
-            data=json.dumps(
-                {
-                    "receiverPublicKey": self.external_public_key,
-                    "receiverNonce": self.external_nonce,
-                    "senderPrivateKey": self.internal_private_key,
-                    "senderPublicKey": self.internal_public_key,
-                    "senderNonce": self.internal_nonce,
-                    "plainTextData": paylaod,
-                }
-            ),
+        encryption_request = EncryptionRequest(
+            requester_public_key=self.external_public_key,
+            requester_nonce=self.external_nonce,
+            sender_private_key=self.internal_private_key,
+            sender_nonce=self.internal_nonce,
+            string_to_encrypt=payload,
         )
+        controller = CryptoController()
+        encrypted_string = controller.encrypt(encryption_request)
 
-        if response.status_code == 200:
-            data = response.json()
-            self.key_to_share = data["keyToShare"]
+        return {
+            "publicKey": self.key_to_share,
+            "data": encrypted_string,
+            "nonce": self.internal_nonce,
+        }
 
-            return {
-                "public_key": self.key_to_share,
-                "data": data["encryptedData"],
-                "nonce": self.internal_nonce,
-            }
-
-        return None
-
-    def decrypt(self, paylaod):
-        response = requests.post(
-            f"{self.server_url}/decrypt",
-            headers={"Content-Type": "application/json"},
-            data=json.dumps(
-                {
-                    "receiverPrivateKey": self.internal_private_key,
-                    "receiverNonce": self.internal_nonce,
-                    "senderPublicKey": self.external_public_key,
-                    "senderNonce": self.external_nonce,
-                    "encryptedData": paylaod,
-                }
-            ),
+    def decrypt(self, payload):
+        decryption_request = DecryptionRequest(
+            sender_public_key=self.external_public_key,
+            sender_nonce=self.external_nonce,
+            requester_private_key=self.internal_private_key,
+            requester_nonce=self.internal_nonce,
+            encrypted_data=payload,
         )
+        controller = CryptoController()
+        decrypted_string = controller.decrypt(decryption_request)
 
-        if response.status_code == 200:
-            data = response.json()
-
-            return data["decryptedData"]
-
-        return None
+        return decrypted_string
