@@ -1,7 +1,7 @@
 # Care Abdm
 
 [![Release Status](https://img.shields.io/pypi/v/care_abdm.svg)](https://pypi.python.org/pypi/care_abdm)
-[![Build Status](https://github.com/coronasafe/care_abdm/actions/workflows/build.yaml/badge.svg)](https://github.com/coronasafe/care_abdm/actions/workflows/build.yaml)
+[![Build Status](https://github.com/ohcnetwork/care_abdm/actions/workflows/build.yaml/badge.svg)](https://github.com/ohcnetwork/care_abdm/actions/workflows/build.yaml)
 
 Care Abdm is a plugin for care to add voice auto fill support using external services like OpenAI whisper and Google Speech to Text.
 
@@ -12,18 +12,18 @@ Care Abdm is a plugin for care to add voice auto fill support using external ser
 
 ## Installation
 
-https://care-be-docs.coronasafe.network/pluggable-apps/configuration.html
+https://care-be-docs.ohc.network/pluggable-apps/configuration.html
 
-https://github.com/coronasafe/care/blob/develop/plug_config.py
+https://github.com/ohcnetwork/care/blob/develop/plug_config.py
 
-To install care abdm, you can add the plugin config in [care/plug_config.py](https://github.com/coronasafe/care/blob/develop/plug_config.py) as follows:
+To install care abdm, you can add the plugin config in [care/plug_config.py](https://github.com/ohcnetwork/care/blob/develop/plug_config.py) as follows:
 
 ```python
 ...
 
 abdm_plug = Plug(
     name="abdm",
-    package_name="git+https://github.com/coronasafe/care_abdm.git",
+    package_name="git+https://github.com/ohcnetwork/care_abdm.git",
     version="@master",
     configs={
         "ABDM_CLIENT_ID": "abdm_client_id",
@@ -65,4 +65,4 @@ This project is licensed under the terms of the [MIT license](LICENSE).
 
 ---
 
-This plugin was created with [Cookiecutter](https://github.com/audreyr/cookiecutter) using the [coronasafe/care-plugin-cookiecutter](https://github.com/coronasafe/care-plugin-cookiecutter).
+This plugin was created with [Cookiecutter](https://github.com/audreyr/cookiecutter) using the [ohcnetwork/care-plugin-cookiecutter](https://github.com/ohcnetwork/care-plugin-cookiecutter).

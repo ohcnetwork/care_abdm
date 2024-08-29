@@ -46,7 +46,7 @@ setup(
     packages=find_packages(include=["abdm", "abdm.*"]),
     test_suite="tests",
     tests_require=test_requirements,
-    url="https://github.com/coronasafe/care_abdm",
+    url="https://github.com/ohcnetwork/care_abdm",
     version="0.2.0",
     zip_safe=False,
 )

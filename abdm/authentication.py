@@ -52,7 +52,7 @@ class ABDMAuthentication(JWTAuthentication):
             password = User.objects.make_random_password()
             user = User(
                 username=settings.ABDM_USERNAME,
-                email="abdm@coronasafe.network",
+                email="abdm@ohc.network",
                 password=f"{password}123",
                 gender=3,
                 phone_number="917777777777",
