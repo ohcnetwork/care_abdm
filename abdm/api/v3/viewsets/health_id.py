@@ -1,4 +1,5 @@
 from datetime import datetime
+from django.http import HttpResponse
 
 from django.conf import settings
 from rest_framework import status
@@ -6,6 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
+from django.db.models import Q
 
 from abdm.api.serializers.abha_number import AbhaNumberSerializer
 from abdm.api.v3.serializers.health_id import (
@@ -493,5 +495,39 @@ class HealthIdViewSet(GenericViewSet):
                 "abha_number": result.get("healthIdNumber"),
                 "auth_methods": result.get("authMethods"),
             },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=False, methods=["get"], url_path="abha_card")
+    def abha_card(self, request):
+        abha_id = request.query_params.get("abha_id")
+
+        if not abha_id:
+            return Response(
+                {
+                    "detail": "ABHA ID is required",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        abha_number = AbhaNumber.objects.filter(
+            Q(abha_number=abha_id) | Q(health_id=abha_id)
+        ).first()
+
+        if not abha_number:
+            return Response(
+                {
+                    "detail": "ABHA Number not found for the given ABHA ID",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        abha_card = HealthIdService.profile__account__abha_card(
+            {"x_token": abha_number.access_token}
+        )
+
+        return HttpResponse(
+            abha_card,
+            content_type="image/png",
             status=status.HTTP_200_OK,
         )

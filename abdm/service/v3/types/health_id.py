@@ -260,3 +260,11 @@ class ProfileAccountBody(TypedDict):
 
 class ProfileAccountResponse(TypedDict, ABHAProfileFull):
     pass
+
+
+class ProfileAccountAbhaCardBody(TypedDict):
+    x_token: str
+
+
+class ProfileAccountAbhaCardResponse(TypedDict):
+    pass

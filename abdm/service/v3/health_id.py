@@ -27,6 +27,8 @@ from abdm.service.v3.types.health_id import (
     ProfileLoginVerifyResponse,
     ProfileLoginVerifyUserBody,
     ProfileLoginVerifyUserResponse,
+    ProfileAccountAbhaCardBody,
+    ProfileAccountAbhaCardResponse,
 )
 
 
@@ -364,3 +366,31 @@ class HealthIdService:
             raise ABDMAPIException(detail=HealthIdService.handle_error(response.json()))
 
         return response.json()
+
+    @staticmethod
+    def profile__account__abha_card(
+        data: ProfileAccountAbhaCardBody,
+    ) -> ProfileAccountAbhaCardResponse:
+        path = "/profile/account/abha-card"
+        response = HealthIdService.request.get(
+            path,
+            headers={
+                "REQUEST-ID": uuid(),
+                "TIMESTAMP": timestamp(),
+                "X-TOKEN": f"Bearer {data.get('x_token', '')}",
+            },
+        )
+
+        if (
+            response.status_code == 401
+            and response.json().get("message") == "X-token expired"
+        ):
+            # TODO: refresh token and retry (implement refresh api once it's available)
+            raise ABDMAPIException(
+                detail="This action is can't be performed now. This action is available only till 15 minutes after linking abha number."
+            )
+
+        if response.status_code != 202:
+            raise ABDMAPIException(detail=HealthIdService.handle_error(response.json()))
+
+        return response.content

@@ -73,7 +73,7 @@ class Request:
 
         response = requests.get(url, headers=headers, params=params, timeout=10)
 
-        if response.status_code == 400:
+        if response.status_code == 400 or response.status_code == 401:
             result = response.json()
             if "code" in result and result["code"] == "900901":
                 cache.delete(ABDM_TOKEN_CACHE_KEY)
@@ -88,7 +88,7 @@ class Request:
 
         response = requests.post(url, data=payload, headers=headers, timeout=10)
 
-        if response.status_code == 400:
+        if response.status_code == 400 or response.status_code == 401:
             result = response.json()
             if "code" in result and result["code"] == "900901":
                 cache.delete(ABDM_TOKEN_CACHE_KEY)
