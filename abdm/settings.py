@@ -1,6 +1,7 @@
 from typing import Any
 
 import environ
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.signals import setting_changed
 from django.dispatch import receiver
