@@ -104,6 +104,8 @@ REQUIRED_SETTINGS = {
     "HEALTH_SERVICE_API_URL",
     "ABDM_FACILITY_URL",
     "X_CM_ID",
+    "CURRENT_DOMAIN",
+    "BACKEND_DOMAIN",
 }
 
 DEFAULTS = {
@@ -117,6 +119,8 @@ DEFAULTS = {
     "ABDM_USERNAME": "abdm_user_internal",
     "X_CM_ID": "sbx",
     "AUTH_USER_MODEL": "users.User",
+    "CURRENT_DOMAIN": "",
+    "BACKEND_DOMAIN": "",
 }
 
 plugin_settings = PluginSettings(
