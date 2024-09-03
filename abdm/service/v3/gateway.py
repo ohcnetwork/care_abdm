@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
 import requests
-from django.conf import settings
+from abdm.settings import plugin_settings as settings
 from django.core.cache import cache
 
 from abdm.models.base import Purpose

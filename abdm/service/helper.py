@@ -5,7 +5,7 @@ from uuid import uuid4
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Hash import SHA1
 from Crypto.PublicKey import RSA
-from django.conf import settings
+from abdm.settings import plugin_settings as settings
 from django.db.models import Q
 from rest_framework.exceptions import APIException
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 from django.http import HttpResponse
 
-from django.conf import settings
+from abdm.settings import plugin_settings as settings
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
