@@ -46,6 +46,8 @@ from abdm.service.v3.types.gateway import (
     UserInitiatedLinkingLinkCareContextOnInitResponse,
     UserInitiatedLinkingPatientCareContextOnDiscoverBody,
     UserInitiatedLinkingPatientCareContextOnDiscoverResponse,
+    PatientShareOnShareBody,
+    PatientShareOnShareResponse,
 )
 from abdm.utils.cipher import Cipher
 from abdm.utils.fhir import Fhir
@@ -761,6 +763,39 @@ class GatewayService:
         )
 
         if response.status_code != 202:
+            raise ABDMAPIException(detail=GatewayService.handle_error(response.json()))
+
+        return {}
+
+    @staticmethod
+    def patient_share__on_share(
+        data: PatientShareOnShareBody,
+    ) -> PatientShareOnShareResponse:
+        payload = {
+            "acknowledgement": {
+                "status": data.get("status"),
+                "abhaAddress": data.get("abha_address"),
+                "profile": {
+                    "context": data.get("context"),
+                    "tokenNumber": data.get("token_number"),
+                    "expiry": data.get("expiry"),
+                },
+            },
+            "response": {"requestId": data.get("request_id")},
+        }
+
+        path = "/patient-share/on-share"
+        response = GatewayService.request.post(
+            path,
+            payload,
+            headers={
+                "REQUEST-ID": uuid(),
+                "TIMESTAMP": timestamp(),
+                "X-CM-ID": cm_id(),
+            },
+        )
+
+        if response.status_code != 200:
             raise ABDMAPIException(detail=GatewayService.handle_error(response.json()))
 
         return {}

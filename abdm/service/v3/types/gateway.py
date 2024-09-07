@@ -154,3 +154,16 @@ class DataFlowHealthInformationRequestBody(TypedDict):
 
 class DataFlowHealthInformationRequestResponse(TypedDict):
     pass
+
+
+class PatientShareOnShareBody(TypedDict):
+    status: Literal["SUCCESS", "FAILED"]
+    abha_address: str
+    context: str
+    token_number: int
+    expiry: int
+    request_id: str
+
+
+class PatientShareOnShareResponse(TypedDict):
+    pass

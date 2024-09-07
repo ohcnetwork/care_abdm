@@ -11,6 +11,7 @@ from rest_framework.serializers import (
     Serializer,
     URLField,
     UUIDField,
+    FloatField,
 )
 
 from abdm.models import (
@@ -219,3 +220,44 @@ class HipHealthInformationRequestSerializer(Serializer):
 
     transactionId = UUIDField(required=True)
     hiRequest = HiRequestSerializer(required=True)
+
+
+class HipPatientShareSerializer(Serializer):
+    class MetaDataSerializer(Serializer):
+        hipId = CharField(max_length=50, required=True)
+        context = CharField(max_length=50, required=True)
+        hprId = CharField(max_length=50, required=True)
+        latitude = FloatField(required=True)
+        longitude = FloatField(required=True)
+
+    class ProfileSerializer(Serializer):
+        class PatientSerializer(Serializer):
+            class AddressSerializer(Serializer):
+                line = CharField(
+                    max_length=200, required=True, allow_blank=True, allow_null=True
+                )
+                district = CharField(
+                    max_length=50, required=False, allow_blank=True, allow_null=True
+                )
+                state = CharField(
+                    max_length=50, required=False, allow_blank=True, allow_null=True
+                )
+                pincode = CharField(
+                    max_length=50, required=False, allow_blank=True, allow_null=True
+                )
+
+            abhaNumber = CharField(max_length=50, required=True)
+            abhaAddress = CharField(max_length=50, required=True)
+            name = CharField(max_length=50, required=True)
+            gender = ChoiceField(choices=["M", "F", "O"], required=True)
+            dayOfBirth = IntegerField(required=True)
+            monthOfBirth = IntegerField(required=True)
+            yearOfBirth = IntegerField(required=True)
+            address = AddressSerializer(required=True)
+            phoneNumber = CharField(max_length=50, required=True)
+
+        patient = PatientSerializer(required=True)
+
+    intent = ChoiceField(choices=["PROFILE_SHARE"], required=True)
+    metaData = MetaDataSerializer(required=True)
+    profile = ProfileSerializer(required=True)

@@ -1,5 +1,6 @@
 import logging
 from functools import reduce
+from datetime import datetime
 
 from django.contrib.postgres.search import TrigramSimilarity
 from django.core.cache import cache
@@ -9,6 +10,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
+from care.facility.api.serializers.patient import PatientTransferSerializer
+
 
 from abdm.api.v3.serializers.hip import (
     ConsentRequestHipNotifySerializer,
@@ -19,12 +22,18 @@ from abdm.api.v3.serializers.hip import (
     HipTokenOnGenerateTokenSerializer,
     LinkCarecontextSerializer,
     LinkOnCarecontextSerializer,
+    HipPatientShareSerializer,
 )
 from abdm.authentication import ABDMAuthentication
-from abdm.models import AbhaNumber, ConsentArtefact
+from abdm.models import AbhaNumber, ConsentArtefact, HealthFacility
 from abdm.service.helper import uuid
 from abdm.service.v3.gateway import GatewayService
-from care.facility.models import PatientConsultation, PatientRegistration
+from care.facility.models import (
+    PatientConsultation,
+    PatientRegistration,
+    State,
+    District,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +86,7 @@ class HIPCallbackViewSet(GenericViewSet):
         "hip__link__care_context__confirm": HipLinkCareContextConfirmSerializer,
         "consent__request__hip__notify": ConsentRequestHipNotifySerializer,
         "hip__health_information__request": HipHealthInformationRequestSerializer,
+        "hip__patient__share": HipPatientShareSerializer,
     }
 
     def get_patient_by_abha_id(self, abha_id: str):
@@ -430,3 +440,122 @@ class HIPCallbackViewSet(GenericViewSet):
             )
 
         return Response(status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=False, methods=["POST"], url_path="hip/patient/share")
+    def hip__patient__share(self, request):
+        validated_data = self.validate_request(request)
+
+        hip_id = validated_data.get("metaData").get("hipId")
+        health_facility = HealthFacility.objects.filter(hf_id=hip_id).first()
+
+        if not health_facility:
+            logger.warning(
+                f"Health Facility with ID: {hip_id} not found in the database"
+            )
+
+            GatewayService.patient_share__on_share(
+                {
+                    "status": "FAILED",
+                    "abha_address": validated_data.get("profile")
+                    .get("patient")
+                    .get("abhaAddress"),
+                    "context": validated_data.get("metaData").get("context"),
+                    "request_id": request.headers.get("REQUEST-ID"),
+                }
+            )
+
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        patient_data = validated_data.get("profile").get("patient")
+        abha_number = AbhaNumber.objects.filter(
+            Q(abha_number=patient_data.get("abhaNumber"))
+            | Q(health_id=patient_data.get("abhaAddress"))
+        ).first()
+        # TODO: consider the case of existing patient without abha number
+
+        if not abha_number:
+            patient = PatientRegistration.objects.create(
+                facility=health_facility.facility,
+                name=patient_data.get("name"),
+                gender={"M": 1, "F": 2, "O": 3, None: None}.get(
+                    patient_data.get("gender"), None
+                ),
+                date_of_birth=datetime.strptime(
+                    f"{patient_data.get('yearOfBirth')}-{patient_data.get('monthOfBirth')}-{patient_data.get('dayOfBirth')}",
+                    "%Y-%m-%d",
+                ),
+                phone_number=patient_data.get("phoneNumber"),
+                emergency_phone_number=patient_data.get("phoneNumber"),
+                address=patient_data.get("address").get("line"),
+                pincode=patient_data.get("address").get("pinCode"),
+                state=State.objects.filter(
+                    name__iexact=patient_data.get("address").get("state")
+                ).first(),
+                district=District.objects.filter(
+                    name__iexact=patient_data.get("address").get("district")
+                ).first(),
+                is_antenatal=False,
+            )
+
+            abha_number = AbhaNumber.objects.create(
+                patient=patient,
+                abha_number=patient_data.get("abhaNumber"),
+                health_id=patient_data.get("abhaAddress"),
+                name=patient_data.get("name"),
+                gender=patient_data.get("gender"),
+                date_of_birth=datetime.strptime(
+                    f"{patient_data.get('yearOfBirth')}-{patient_data.get('monthOfBirth')}-{patient_data.get('dayOfBirth')}",
+                    "%Y-%m-%d",
+                ),
+                address=patient_data.get("address").get("line"),
+                district=patient_data.get("address").get("district"),
+                state=patient_data.get("address").get("state"),
+                pincode=patient_data.get("address").get("pinCode"),
+                mobile=patient_data.get("phoneNumber"),
+            )
+
+        else:
+            serializer = PatientTransferSerializer(
+                abha_number.patient,
+                data={
+                    "facility": str(health_facility.facility.external_id),
+                    "year_of_birth": patient_data.get("yearOfBirth"),
+                },
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+        cached_data = cache.get("abdm_patient_share__" + abha_number.health_id)
+
+        if cached_data:
+            GatewayService.patient_share__on_share(
+                {
+                    "status": "FAILED",
+                    "abha_address": abha_number.health_id,
+                    "context": validated_data.get("metaData").get("context"),
+                    "request_id": request.headers.get("REQUEST-ID"),
+                }
+            )
+
+            return Response(status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        token_number = len(cache.client.get_client().keys("abdm_patient_share__*")) + 1
+
+        cache.set(
+            "abdm_patient_share__" + abha_number.health_id,
+            token_number,
+            timeout=600,
+        )
+
+        GatewayService.patient_share__on_share(
+            {
+                "status": "SUCCESS",
+                "abha_address": abha_number.health_id,
+                "context": validated_data.get("metaData").get("context"),
+                "token_number": token_number,
+                "expiry": 600,
+                "request_id": request.headers.get("REQUEST-ID"),
+            }
+        )
+
+        return Response(validated_data, status=status.HTTP_200_OK)
