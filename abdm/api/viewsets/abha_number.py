@@ -1,9 +1,7 @@
 from django.db.models import Q
 from django.http import Http404
-from rest_framework.decorators import action
-from rest_framework.mixins import RetrieveModelMixin
+from rest_framework.mixins import RetrieveModelMixin, CreateModelMixin
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from abdm.api.serializers.abha_number import AbhaNumberSerializer
@@ -13,6 +11,7 @@ from care.utils.queryset.patient import get_patient_queryset
 
 class AbhaNumberViewSet(
     GenericViewSet,
+    CreateModelMixin,
     RetrieveModelMixin,
 ):
     serializer_class = AbhaNumberSerializer
