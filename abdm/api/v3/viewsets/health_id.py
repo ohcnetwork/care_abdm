@@ -25,6 +25,7 @@ from abdm.api.v3.serializers.health_id import (
 from abdm.models import AbhaNumber
 from abdm.service.v3.health_id import HealthIdService
 from care.utils.queryset.patient import get_patient_queryset
+from abdm.service.v3.gateway import GatewayService
 
 
 class HealthIdViewSet(GenericViewSet):
@@ -102,6 +103,14 @@ class HealthIdViewSet(GenericViewSet):
 
         abha_number.patient = patient
         abha_number.save()
+
+        consultations = patient.consultations.all()
+        GatewayService.link__carecontext(
+            {
+                "consultations": consultations,
+                "link_token": None,
+            }
+        )
 
         return Response(
             AbhaNumberSerializer(abha_number).data,
