@@ -105,12 +105,13 @@ class HealthIdViewSet(GenericViewSet):
         abha_number.save()
 
         consultations = patient.consultations.all()
-        GatewayService.link__carecontext(
-            {
-                "consultations": consultations,
-                "link_token": None,
-            }
-        )
+        if consultations.exists():
+            GatewayService.link__carecontext(
+                {
+                    "consultations": consultations,
+                    "link_token": None,
+                }
+            )
 
         return Response(
             AbhaNumberSerializer(abha_number).data,
