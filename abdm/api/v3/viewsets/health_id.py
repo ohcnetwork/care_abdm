@@ -125,7 +125,7 @@ class HealthIdViewSet(GenericViewSet):
         result = HealthIdService.enrollment__request__otp(
             {
                 "scope": ["abha-enrol"],
-                "transaction_id": "",
+                "transaction_id": str(validated_data.get("transaction_id", "")),
                 "type": "aadhaar",
                 "value": validated_data.get("aadhaar"),
             }
@@ -174,7 +174,9 @@ class HealthIdViewSet(GenericViewSet):
                 "middle_name": abha_profile.get("middleName"),
                 "last_name": abha_profile.get("lastName"),
                 "gender": abha_profile.get("gender"),
-                "date_of_birth": abha_profile.get("dob"),
+                "date_of_birth": datetime.strptime(
+                    abha_profile.get("dob"), "%d-%m-%Y"
+                ).strftime("%Y-%m-%d"),
                 "address": abha_profile.get("address"),
                 "district": abha_profile.get("districtName"),
                 "state": abha_profile.get("stateName"),

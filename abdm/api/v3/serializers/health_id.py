@@ -3,6 +3,7 @@ from rest_framework.serializers import CharField, ChoiceField, Serializer, UUIDF
 
 class AbhaCreateSendAadhaarOtpSerializer(Serializer):
     aadhaar = CharField(max_length=12, min_length=12, required=True)
+    transaction_id = UUIDField(required=False)
 
 
 class AbhaCreateVerifyAadhaarOtpSerializer(Serializer):
