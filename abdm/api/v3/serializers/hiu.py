@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from abdm.models.base import AccessMode, HealthInformationType, Purpose, Status
 from rest_framework.serializers import (
     CharField,
     ChoiceField,
@@ -10,8 +11,6 @@ from rest_framework.serializers import (
     UUIDField,
     ValidationError,
 )
-
-from abdm.models.base import AccessMode, HealthInformationType, Purpose, Status
 
 
 class IdentityAuthenticationSerializer(Serializer):
@@ -74,7 +73,7 @@ class HiuConsentRequestNotifySerializer(Serializer):
 
         consentRequestId = UUIDField(required=True)
         status = ChoiceField(choices=Status.choices, required=True)
-        consentArtefacts = ListField(child=ConsentArtefactSerializer(), required=True)
+        consentArtefacts = ListField(child=ConsentArtefactSerializer(), required=False)
 
     notification = NotificationSerializer(required=True)
 

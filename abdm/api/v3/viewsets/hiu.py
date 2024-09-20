@@ -1,13 +1,6 @@
 import json
 import logging
 
-from django.db.models import Q
-from rest_framework import status
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet
-
 from abdm.api.serializers.consent import ConsentRequestSerializer
 from abdm.api.v3.serializers.hiu import (
     ConsentFetchSerializer,
@@ -27,6 +20,13 @@ from abdm.models import AbhaNumber, ConsentArtefact, ConsentRequest
 from abdm.models.base import Status
 from abdm.service.v3.gateway import GatewayService
 from abdm.utils.cipher import Cipher
+from django.db.models import Q
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
+
 from care.facility.models import FileUpload
 
 logger = logging.getLogger(__name__)
@@ -272,7 +272,7 @@ class HIUCallbackViewSet(GenericViewSet):
 
         notification = validated_data.get("notification")
         consent_status = notification.get("status")
-        consent_artefacts = notification.get("consentArtefacts")
+        consent_artefacts = notification.get("consentArtefacts", [])
 
         consent = ConsentRequest.objects.filter(
             consent_id=notification.get("consentRequestId")
@@ -304,19 +304,20 @@ class HIUCallbackViewSet(GenericViewSet):
         consent.status = consent_status
         consent.save()
 
-        GatewayService.consent__request__hiu__on_notify(
-            {
-                "consent": consent,
-                "request_id": request.headers.get("REQUEST-ID"),
-            }
-        )
-
-        for artefact in consent.consent_artefacts.all():
-            GatewayService.consent__fetch(
+        if consent_status == Status.GRANTED:
+            GatewayService.consent__request__hiu__on_notify(
                 {
-                    "artefact": artefact,
+                    "consent": consent,
+                    "request_id": request.headers.get("REQUEST-ID"),
                 }
             )
+
+            for artefact in consent.consent_artefacts.all():
+                GatewayService.consent__fetch(
+                    {
+                        "artefact": artefact,
+                    }
+                )
 
         return Response(status=status.HTTP_200_OK)
 
