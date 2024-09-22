@@ -1,13 +1,25 @@
 from typing import List, Literal, Optional, TypedDict
 
-from abdm.models import AbhaNumber, ConsentArtefact, ConsentRequest
+from abdm.models import (
+    AbhaNumber,
+    ConsentArtefact,
+    ConsentRequest,
+    HealthInformationType,
+)
+
 from care.facility.models import PatientConsultation, PatientRegistration
+
+
+class CareContext(TypedDict):
+    hi_type: HealthInformationType
+    reference: str
+    display: str
 
 
 class TokenGenerateTokenBody(TypedDict):
     abha_number: AbhaNumber
     purpose: Optional[Literal["LINK_CARECONTEXT"]]
-    consultations: Optional[List[str]]
+    care_contexts: Optional[List[CareContext]]
 
 
 class TokenGenerateTokenResponse(TypedDict):
@@ -15,8 +27,8 @@ class TokenGenerateTokenResponse(TypedDict):
 
 
 class LinkCarecontextBody(TypedDict):
-    link_token: str | None
-    consultations: List[PatientConsultation]
+    patient: PatientRegistration
+    care_contexts: List[CareContext]
 
 
 class LinkCarecontextResponse(TypedDict):
@@ -73,7 +85,6 @@ class DataFlowHealthInformationHipOnRequestResponse(TypedDict):
 
 class DataFlowHealthInformationTransferBody(TypedDict):
     url: str
-    consultations: List[PatientConsultation]
     consent: ConsentArtefact
     transaction_id: str
     key_material__crypto_algorithm: str
@@ -89,11 +100,11 @@ class DataFlowHealthInformationTransferResponse(TypedDict):
 class DataFlowHealthInformationNotifyBody(TypedDict):
     transaction_id: str
     consent_id: str
+    consent: ConsentArtefact
     notifier__type: Literal["HIP", "HIU"]
     notifier__id: str
     status: Literal["TRANSFERRED", "FAILED"]
     hip_id: str
-    consultation_ids: List[str]
 
 
 class DataFlowHealthInformationNotifyResponse(TypedDict):

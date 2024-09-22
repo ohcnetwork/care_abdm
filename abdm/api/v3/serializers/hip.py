@@ -1,18 +1,4 @@
 from datetime import datetime
-from typing import Any
-
-from rest_framework.exceptions import APIException
-from rest_framework.serializers import (
-    CharField,
-    ChoiceField,
-    DateTimeField,
-    IntegerField,
-    ListField,
-    Serializer,
-    URLField,
-    UUIDField,
-    FloatField,
-)
 
 from abdm.models import (
     AccessMode,
@@ -21,24 +7,17 @@ from abdm.models import (
     Purpose,
     Status,
 )
-from care.utils.queryset.consultation import get_consultation_queryset
-
-
-class LinkCarecontextSerializer(Serializer):
-    consultations = ListField(child=UUIDField(), required=True)
-
-    def validate(self, attrs: Any) -> Any:
-        consultation_instances = get_consultation_queryset(
-            self.context["request"].user
-        ).filter(external_id__in=attrs["consultations"])
-
-        if consultation_instances.count() != len(attrs["consultations"]):
-            raise APIException(
-                detail="You do not have access to one or more consultations"
-            )
-
-        attrs["consultations"] = consultation_instances
-        return super().validate(attrs)
+from rest_framework.serializers import (
+    CharField,
+    ChoiceField,
+    DateTimeField,
+    FloatField,
+    IntegerField,
+    ListField,
+    Serializer,
+    URLField,
+    UUIDField,
+)
 
 
 class HipTokenOnGenerateTokenSerializer(Serializer):
@@ -117,8 +96,8 @@ class ConsentRequestHipNotifySerializer(Serializer):
                 id = CharField(max_length=50, required=True)
 
             class CareContextSerializer(Serializer):
-                patientReference = CharField(max_length=50, required=True)
-                careContextReference = CharField(max_length=50, required=True)
+                patientReference = CharField(required=True)
+                careContextReference = CharField(required=True)
 
             class PurposeSerializer(Serializer):
                 text = CharField(max_length=50, required=False)

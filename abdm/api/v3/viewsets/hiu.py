@@ -447,15 +447,13 @@ class HIUCallbackViewSet(GenericViewSet):
 
         GatewayService.data_flow__health_information__notify(
             {
+                "consent": artefact,
                 "consent_id": str(artefact.artefact_id),
                 "transaction_id": str(artefact.transaction_id),
                 "notifier__type": "HIU",
                 "notifier__id": artefact.hiu,
                 "status": "TRANSFERRED",
                 "hip_id": artefact.hip,
-                "consultation_ids": list(
-                    map(lambda x: x.get("care_context_reference"), entries)
-                ),
             }
         )
 

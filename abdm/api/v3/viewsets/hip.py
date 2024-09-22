@@ -1,7 +1,21 @@
 import logging
-from functools import reduce
 from datetime import datetime
+from functools import reduce
 
+from abdm.api.v3.serializers.hip import (
+    ConsentRequestHipNotifySerializer,
+    HipHealthInformationRequestSerializer,
+    HipLinkCareContextConfirmSerializer,
+    HipLinkCareContextInitSerializer,
+    HipPatientCareContextDiscoverSerializer,
+    HipPatientShareSerializer,
+    HipTokenOnGenerateTokenSerializer,
+    LinkOnCarecontextSerializer,
+)
+from abdm.authentication import ABDMAuthentication
+from abdm.models import AbhaNumber, ConsentArtefact, HealthFacility
+from abdm.service.helper import uuid
+from abdm.service.v3.gateway import GatewayService
 from django.contrib.postgres.search import TrigramSimilarity
 from django.core.cache import cache
 from django.db.models import Q
@@ -10,29 +24,13 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
+
 from care.facility.api.serializers.patient import PatientTransferSerializer
-
-
-from abdm.api.v3.serializers.hip import (
-    ConsentRequestHipNotifySerializer,
-    HipHealthInformationRequestSerializer,
-    HipLinkCareContextConfirmSerializer,
-    HipLinkCareContextInitSerializer,
-    HipPatientCareContextDiscoverSerializer,
-    HipTokenOnGenerateTokenSerializer,
-    LinkCarecontextSerializer,
-    LinkOnCarecontextSerializer,
-    HipPatientShareSerializer,
-)
-from abdm.authentication import ABDMAuthentication
-from abdm.models import AbhaNumber, ConsentArtefact, HealthFacility
-from abdm.service.helper import uuid
-from abdm.service.v3.gateway import GatewayService
 from care.facility.models import (
+    District,
     PatientConsultation,
     PatientRegistration,
     State,
-    District,
 )
 
 logger = logging.getLogger(__name__)
@@ -41,34 +39,11 @@ logger = logging.getLogger(__name__)
 class HIPViewSet(GenericViewSet):
     permission_classes = (IsAuthenticated,)
 
-    serializer_action_classes = {"link__carecontext": LinkCarecontextSerializer}
-
-    def get_serializer_class(self):
-        if self.action in self.serializer_action_classes:
-            return self.serializer_action_classes[self.action]
-
-        return super().get_serializer_class()
-
-    def validate_request(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        return serializer.validated_data
-
     @action(detail=False, methods=["POST"], url_path="link_care_context")
     def link__carecontext(self, request):
-        validated_data = self.validate_request(request)
-
-        GatewayService.link__carecontext(
-            {
-                "consultations": validated_data.get("consultations"),
-                "link_token": None,
-            }
-        )
-
         return Response(
             {
-                "detail": "Linking request has been raised, you will be notified through abha app once the process is completed"
+                "detail": "All care contexts are linked automatically, and no manual intervention is required",
             },
             status=status.HTTP_202_ACCEPTED,
         )
@@ -127,7 +102,8 @@ class HIPCallbackViewSet(GenericViewSet):
         validated_data = self.validate_request(request)
 
         cached_data = cache.get(
-            "abdm_link_token__" + str(validated_data.get("response").get("requestId"))
+            "abdm_link_care_context__"
+            + str(validated_data.get("response").get("requestId"))
         )
 
         if not cached_data:
@@ -137,24 +113,28 @@ class HIPCallbackViewSet(GenericViewSet):
 
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+        abha_number = AbhaNumber.objects.filter(
+            abha_number=cached_data.get("abha_number")
+        ).first()
+
+        if not abha_number:
+            logger.warning(
+                f"ABHA Number: {cached_data.get('abha_number')} not found in the database"
+            )
+
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        cache.set(
+            "abdm_link_token__" + abha_number.health_id,
+            validated_data.get("linkToken"),
+            timeout=60 * 30,
+        )
+
         if cached_data.get("purpose") == "LINK_CARECONTEXT":
-            abha_number = AbhaNumber.objects.filter(
-                abha_number=cached_data.get("abha_number")
-            ).first()
-
-            if not abha_number:
-                logger.warning(
-                    f"ABHA Number: {cached_data.get('abha_number')} not found in the database"
-                )
-
-                return Response(status=status.HTTP_404_NOT_FOUND)
-
             GatewayService.link__carecontext(
                 {
-                    "consultations": PatientConsultation.objects.filter(
-                        external_id__in=cached_data.get("consultations", [])
-                    ),
-                    "link_token": validated_data.get("linkToken"),
+                    "patient": abha_number.patient,
+                    "care_contexts": cached_data.get("care_contexts", []),
                 }
             )
 
@@ -385,17 +365,10 @@ class HIPCallbackViewSet(GenericViewSet):
             }
         )
 
-        consultations = PatientConsultation.objects.filter(
-            external_id__in=list(
-                map(lambda x: x.get("careContextReference"), consent.care_contexts)
-            )
-        )
-
         try:
             GatewayService.data_flow__health_information__transfer(
                 {
                     "transaction_id": str(validated_data.get("transactionId")),
-                    "consultations": consultations,
                     "consent": consent,
                     "url": hi_request.get("dataPushUrl"),
                     "key_material__crypto_algorithm": key_material.get("cryptoAlg"),
@@ -409,15 +382,13 @@ class HIPCallbackViewSet(GenericViewSet):
 
             GatewayService.data_flow__health_information__notify(
                 {
+                    "consent": consent,
                     "consent_id": str(consent.consent_id),
                     "transaction_id": str(validated_data.get("transactionId")),
                     "notifier__type": "HIP",
                     "notifier__id": request.headers.get("X-HIP-ID"),
                     "status": "TRANSFERRED",
                     "hip_id": request.headers.get("X-HIP-ID"),
-                    "consultation_ids": list(
-                        map(lambda x: str(x.external_id), consultations)
-                    ),
                 }
             )
         except Exception as exception:
@@ -427,15 +398,13 @@ class HIPCallbackViewSet(GenericViewSet):
 
             GatewayService.data_flow__health_information__notify(
                 {
+                    "consent": consent,
                     "consent_id": str(consent.consent_id),
                     "transaction_id": str(validated_data.get("transactionId")),
                     "notifier__type": "HIP",
                     "notifier__id": request.headers.get("X-HIP-ID"),
                     "status": "FAILED",
                     "hip_id": request.headers.get("X-HIP-ID"),
-                    "consultation_ids": list(
-                        map(lambda x: str(x.external_id), consultations)
-                    ),
                 }
             )
 

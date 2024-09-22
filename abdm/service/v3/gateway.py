@@ -1,11 +1,8 @@
-import json
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
 import requests
-from abdm.settings import plugin_settings as settings
-from django.core.cache import cache
-
 from abdm.models.base import Purpose
 from abdm.service.helper import (
     ABDMAPIException,
@@ -38,6 +35,8 @@ from abdm.service.v3.types.gateway import (
     IdentityAuthenticationResponse,
     LinkCarecontextBody,
     LinkCarecontextResponse,
+    PatientShareOnShareBody,
+    PatientShareOnShareResponse,
     TokenGenerateTokenBody,
     TokenGenerateTokenResponse,
     UserInitiatedLinkingLinkCareContextOnConfirmBody,
@@ -46,11 +45,19 @@ from abdm.service.v3.types.gateway import (
     UserInitiatedLinkingLinkCareContextOnInitResponse,
     UserInitiatedLinkingPatientCareContextOnDiscoverBody,
     UserInitiatedLinkingPatientCareContextOnDiscoverResponse,
-    PatientShareOnShareBody,
-    PatientShareOnShareResponse,
 )
+from abdm.settings import plugin_settings as settings
 from abdm.utils.cipher import Cipher
-from abdm.utils.fhir import Fhir
+from abdm.utils.fhir_v1 import Fhir
+from django.core.cache import cache
+
+from care.facility.models import (
+    DailyRound,
+    InvestigationSession,
+    PatientConsultation,
+    Prescription,
+    SuggestionChoices,
+)
 
 
 class GatewayService:
@@ -101,11 +108,11 @@ class GatewayService:
 
         request_id = uuid()
         cache.set(
-            "abdm_link_token__" + request_id,
+            "abdm_link_care_context__" + request_id,
             {
                 "abha_number": abha_number.abha_number,
                 "purpose": data.get("purpose"),
-                "consultations": data.get("consultations"),
+                "care_contexts": data.get("care_contexts"),
             },
             timeout=60 * 5,
         )
@@ -129,51 +136,59 @@ class GatewayService:
 
     @staticmethod
     def link__carecontext(data: LinkCarecontextBody) -> LinkCarecontextResponse:
-        consultations = data.get("consultations")
+        patient = data.get("patient")
+        if not patient:
+            raise ABDMAPIException(detail="Provide a patient to link care context")
 
-        if not consultations or len(consultations) == 0:
-            raise ABDMAPIException(detail="Provide at least one consultation to link")
-
-        patient = consultations[0].patient
         abha_number = getattr(patient, "abha_number", None)
-
         if not abha_number:
             raise ABDMAPIException(
                 detail="Failed to link consultation, Patient does not have an ABHA number"
             )
 
-        if not data.get("link_token"):
+        care_contexts = data.get("care_contexts", [])
+        if len(care_contexts) == 0:
+            raise ABDMAPIException(detail="Provide at least 1 care contexts to link")
+
+        link_token = cache.get("abdm_link_token__" + abha_number.health_id)
+
+        if not link_token:
             GatewayService.token__generate_token(
                 {
                     "abha_number": abha_number,
                     "purpose": "LINK_CARECONTEXT",
-                    "consultations": list(
-                        map(lambda x: str(x.external_id), consultations)
-                    ),
+                    "care_contexts": care_contexts,
                 }
             )
             return {}
 
+        grouped_care_contexts = defaultdict(list)
+        for care_context in care_contexts:
+            grouped_care_contexts[care_context["hi_type"]].append(care_context)
+
         payload = {
             "abhaNumber": abha_number.abha_number.replace("-", ""),
             "abhaAddress": abha_number.health_id,
-            "patient": [
-                {
-                    "referenceNumber": str(patient.external_id),
-                    "display": patient.name,
-                    "careContexts": list(
-                        map(
-                            lambda x: {
-                                "referenceNumber": str(x.external_id),
-                                "display": f"Encounter on {str(x.created_date.date())}",
-                            },
-                            consultations,
-                        )
-                    ),
-                    "hiType": "DischargeSummary",
-                    "count": len(consultations),
-                }
-            ],
+            "patient": list(
+                map(
+                    lambda hi_type: {
+                        "referenceNumber": str(patient.external_id),
+                        "display": patient.name,
+                        "careContexts": list(
+                            map(
+                                lambda x: {
+                                    "referenceNumber": x["reference"],
+                                    "display": x["display"],
+                                },
+                                grouped_care_contexts[hi_type],
+                            )
+                        ),
+                        "hiType": hi_type,
+                        "count": len(grouped_care_contexts[hi_type]),
+                    },
+                    grouped_care_contexts.keys(),
+                )
+            ),
         }
 
         path = "/link/carecontext"
@@ -185,7 +200,7 @@ class GatewayService:
                 "TIMESTAMP": timestamp(),
                 "X-CM-ID": cm_id(),
                 "X-HIP-ID": hf_id_from_abha_id(abha_number.abha_number),
-                "X-LINK-TOKEN": data.get("link_token"),
+                "X-LINK-TOKEN": link_token,
             },
         )
 
@@ -397,8 +412,12 @@ class GatewayService:
     def data_flow__health_information__transfer(
         data: DataFlowHealthInformationTransferBody,
     ) -> DataFlowHealthInformationTransferResponse:
-        consultations = data.get("consultations", [])
         consent = data.get("consent")
+
+        if not consent:
+            raise ABDMAPIException(
+                detail="Provide a consent to transfer health information"
+            )
 
         cipher = Cipher(
             external_public_key=data.get("key_material__public_key"),
@@ -406,20 +425,62 @@ class GatewayService:
         )
 
         entries = []
-        for consultation in consultations:
-            if consent:
-                for hi_type in consent.hi_types:
-                    fhir_data = Fhir(consultation=consultation).create_record(hi_type)
+        for care_context in consent.care_contexts:
+            care_context_reference = care_context.get("careContextReference", "")
 
-                    encrypted_data = cipher.encrypt(fhir_data)["data"]
+            if "::" not in care_context_reference:
+                care_context_reference = f"v0::consultation::{care_context_reference}"
 
-                    entry = {
-                        "content": encrypted_data,
-                        "media": "application/fhir+json",
-                        "checksum": "",  # TODO: look into generating checksum
-                        "careContextReference": str(consultation.external_id),
-                    }
-                    entries.append(entry)
+            [version, model, param] = care_context_reference.split("::")
+
+            if model == "consultation":
+                consultation = PatientConsultation.objects.filter(
+                    external_id=param
+                ).first()
+
+                if not consultation:
+                    continue
+
+                if consultation.suggestion == SuggestionChoices.A:
+                    fhir_data = Fhir().create_discharge_summary_record(consultation)
+                else:
+                    fhir_data = Fhir().create_op_consultation_record(consultation)
+
+            elif model == "investigation_session":
+                session = InvestigationSession.objects.filter(external_id=param).first()
+
+                if not session:
+                    continue
+
+                fhir_data = Fhir().create_diagnostic_report_record(session)
+
+            elif model == "prescription":
+                prescriptions = Prescription.objects.filter(created_date__date=param)
+
+                if not prescriptions.exists():
+                    continue
+
+                fhir_data = Fhir().create_prescription_record(list(prescriptions))
+
+            elif model == "daily_round":
+                daily_round = DailyRound.objects.filter(external_id=param).first()
+
+                if not daily_round:
+                    continue
+
+                fhir_data = Fhir().create_wellness_record(daily_round)
+
+            else:
+                continue
+
+            encrypted_data = cipher.encrypt(fhir_data.json())["data"]
+            entry = {
+                "content": encrypted_data,
+                "media": "application/fhir+json",
+                "checksum": "",  # TODO: look into generating checksum
+                "careContextReference": care_context.get("careContextReference"),
+            }
+            entries.append(entry)
 
         payload = {
             "pageNumber": 1,
@@ -463,7 +524,10 @@ class GatewayService:
     def data_flow__health_information__notify(
         data: DataFlowHealthInformationNotifyBody,
     ) -> DataFlowHealthInformationNotifyResponse:
-        consultation_ids = data.get("consultation_ids", [])
+        consent = data.get("consent")
+
+        if not consent:
+            raise ABDMAPIException(detail="Provide a consent to notify")
 
         payload = {
             "notification": {
@@ -479,8 +543,10 @@ class GatewayService:
                     "hipId": data.get("hip_id"),
                     "statusResponses": list(
                         map(
-                            lambda x: {
-                                "careContextReference": x,
+                            lambda care_context: {
+                                "careContextReference": care_context.get(
+                                    "careContextReference"
+                                ),
                                 "hiStatus": (
                                     "DELIVERED"
                                     if data.get("status") == "TRANSFERRED"
@@ -488,7 +554,7 @@ class GatewayService:
                                 ),
                                 "description": data.get("status"),
                             },
-                            consultation_ids,
+                            consent.care_contexts or [],
                         )
                     ),
                 },
