@@ -66,9 +66,9 @@ class HipPatientCareContextDiscoverSerializer(Serializer):
 class HipLinkCareContextInitSerializer(Serializer):
     class PatientSerializer(Serializer):
         class CareContextSerializer(Serializer):
-            referenceNumber = CharField(max_length=50, required=True)
+            referenceNumber = CharField(required=True)
 
-        referenceNumber = CharField(max_length=50, required=True)
+        referenceNumber = CharField(required=True)
         careContexts = CareContextSerializer(many=True, required=True)
         hiType = ChoiceField(
             choices=HealthInformationType.choices,

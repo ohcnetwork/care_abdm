@@ -1,13 +1,4 @@
 from datetime import datetime
-from django.http import HttpResponse
-
-from abdm.settings import plugin_settings as settings
-from rest_framework import status
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet
-from django.db.models import Q
 
 from abdm.api.serializers.abha_number import AbhaNumberSerializer
 from abdm.api.v3.serializers.health_id import (
@@ -23,9 +14,19 @@ from abdm.api.v3.serializers.health_id import (
     LinkAbhaNumberAndPatientSerializer,
 )
 from abdm.models import AbhaNumber
-from abdm.service.v3.health_id import HealthIdService
-from care.utils.queryset.patient import get_patient_queryset
+from abdm.service.helper import generate_care_contexts_for_existing_data
 from abdm.service.v3.gateway import GatewayService
+from abdm.service.v3.health_id import HealthIdService
+from abdm.settings import plugin_settings as settings
+from django.db.models import Q
+from django.http import HttpResponse
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
+
+from care.utils.queryset.patient import get_patient_queryset
 
 
 class HealthIdViewSet(GenericViewSet):
@@ -104,12 +105,12 @@ class HealthIdViewSet(GenericViewSet):
         abha_number.patient = patient
         abha_number.save()
 
-        consultations = patient.consultations.all()
-        if consultations.exists():
+        care_contexts = generate_care_contexts_for_existing_data(patient)
+        if len(care_contexts) > 0:
             GatewayService.link__carecontext(
                 {
-                    "consultations": consultations,
-                    "link_token": None,
+                    "patient": patient,
+                    "care_contexts": care_contexts,
                 }
             )
 

@@ -3,10 +3,11 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
 import requests
-from abdm.models.base import Purpose
+from abdm.models.base import HealthInformationType, Purpose
 from abdm.service.helper import (
     ABDMAPIException,
     cm_id,
+    generate_care_contexts_for_existing_data,
     hf_id_from_abha_id,
     timestamp,
     uuid,
@@ -222,28 +223,32 @@ class GatewayService:
 
         patient = data.get("patient")
         if patient:
-            consultations = []
+            care_contexts = generate_care_contexts_for_existing_data(patient)
 
-            if hasattr(patient, "consultations"):
-                consultations = patient.consultations.all()
+            grouped_care_contexts = defaultdict(list)
+            for care_context in care_contexts:
+                grouped_care_contexts[care_context["hi_type"]].append(care_context)
 
-            payload["patient"] = [
-                {
-                    "referenceNumber": str(patient.external_id),
-                    "display": patient.name,
-                    "careContexts": list(
-                        map(
-                            lambda x: {
-                                "referenceNumber": str(x.external_id),
-                                "display": f"Encounter on {str(x.created_date.date())}",
-                            },
-                            consultations,
-                        )
-                    ),
-                    "hiType": "DischargeSummary",
-                    "count": len(consultations),
-                }
-            ]
+            payload["patient"] = list(
+                map(
+                    lambda hi_type: {
+                        "referenceNumber": str(patient.external_id),
+                        "display": patient.name,
+                        "careContexts": list(
+                            map(
+                                lambda x: {
+                                    "referenceNumber": x["reference"],
+                                    "display": x["display"],
+                                },
+                                grouped_care_contexts[hi_type],
+                            )
+                        ),
+                        "hiType": hi_type,
+                        "count": len(grouped_care_contexts[hi_type]),
+                    },
+                    grouped_care_contexts.keys(),
+                )
+            )
             payload["matchedBy"] = data.get("matched_by", [])
         else:
             payload["error"] = {
@@ -315,26 +320,38 @@ class GatewayService:
             },
         }
 
-        consultations = data.get("consultations", [])
-        if len(consultations) > 0:
-            patient = consultations[0].patient
-            payload["patient"] = [
-                {
-                    "referenceNumber": str(patient.external_id),
-                    "display": patient.name,
-                    "careContexts": list(
-                        map(
-                            lambda x: {
-                                "referenceNumber": str(x.external_id),
-                                "display": f"Encounter on {str(x.created_date.date())}",
-                            },
-                            consultations,
-                        )
-                    ),
-                    "hiType": "DischargeSummary",
-                    "count": len(consultations),
-                }
-            ]
+        patient = data.get("patient")
+        care_context_ids = data.get("care_contexts", [])
+        if len(care_context_ids) > 0 and patient:
+            care_contexts = generate_care_contexts_for_existing_data(patient)
+
+            grouped_care_contexts = defaultdict(list)
+            for care_context in care_contexts:
+                if care_context["reference"] not in care_context_ids:
+                    continue
+
+                grouped_care_contexts[care_context["hi_type"]].append(care_context)
+
+            payload["patient"] = list(
+                map(
+                    lambda hi_type: {
+                        "referenceNumber": str(patient.external_id),
+                        "display": patient.name,
+                        "careContexts": list(
+                            map(
+                                lambda x: {
+                                    "referenceNumber": x["reference"],
+                                    "display": x["display"],
+                                },
+                                grouped_care_contexts[hi_type],
+                            )
+                        ),
+                        "hiType": hi_type,
+                        "count": len(grouped_care_contexts[hi_type]),
+                    },
+                    grouped_care_contexts.keys(),
+                )
+            )
 
         path = "/user-initiated-linking/link/care-context/on-confirm"
         response = GatewayService.request.post(
@@ -441,12 +458,20 @@ class GatewayService:
                 if not consultation:
                     continue
 
-                if consultation.suggestion == SuggestionChoices.A:
+                if (
+                    consultation.suggestion == SuggestionChoices.A
+                    and HealthInformationType.DISCHARGE_SUMMARY in consent.hi_types
+                ):
                     fhir_data = Fhir().create_discharge_summary_record(consultation)
-                else:
+                elif HealthInformationType.OP_CONSULTATION in consent.hi_types:
                     fhir_data = Fhir().create_op_consultation_record(consultation)
+                else:
+                    continue
 
-            elif model == "investigation_session":
+            elif (
+                model == "investigation_session"
+                and HealthInformationType.DIAGNOSTIC_REPORT in consent.hi_types
+            ):
                 session = InvestigationSession.objects.filter(external_id=param).first()
 
                 if not session:
@@ -454,7 +479,10 @@ class GatewayService:
 
                 fhir_data = Fhir().create_diagnostic_report_record(session)
 
-            elif model == "prescription":
+            elif (
+                model == "prescription"
+                and HealthInformationType.PRESCRIPTION in consent.hi_types
+            ):
                 prescriptions = Prescription.objects.filter(created_date__date=param)
 
                 if not prescriptions.exists():
@@ -462,7 +490,10 @@ class GatewayService:
 
                 fhir_data = Fhir().create_prescription_record(list(prescriptions))
 
-            elif model == "daily_round":
+            elif (
+                model == "daily_round"
+                and HealthInformationType.WELLNESS_RECORD in consent.hi_types
+            ):
                 daily_round = DailyRound.objects.filter(external_id=param).first()
 
                 if not daily_round:

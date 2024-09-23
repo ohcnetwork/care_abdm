@@ -58,7 +58,8 @@ class UserInitiatedLinkingLinkCareContextOnInitResponse(TypedDict):
 
 class UserInitiatedLinkingLinkCareContextOnConfirmBody(TypedDict):
     request_id: str
-    consultations: List[PatientConsultation]
+    patient: PatientRegistration
+    care_contexts: List[str]
 
 
 class UserInitiatedLinkingLinkCareContextOnConfirmResponse(TypedDict):

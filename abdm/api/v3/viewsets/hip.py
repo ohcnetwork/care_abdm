@@ -214,11 +214,7 @@ class HIPCallbackViewSet(GenericViewSet):
         care_contexts = reduce(
             lambda acc, patient: acc
             + [
-                {
-                    "patient_reference": patient.get("referenceNumber"),
-                    "care_context_reference": context.get("referenceNumber"),
-                    "hi_type": patient.get("hiType"),
-                }
+                context.get("referenceNumber")
                 for context in patient.get("careContexts", [])
             ],
             validated_data.get("patient", []),
@@ -233,6 +229,9 @@ class HIPCallbackViewSet(GenericViewSet):
                 # TODO: generate OTP and send it to the patient
                 "otp": "000000",
                 "abha_address": validated_data.get("abhaAddress"),
+                "patient_id": validated_data.get("patient", [{}])[0].get(
+                    "referenceNumber"
+                ),
                 "care_contexts": care_contexts,
             },
         )
@@ -272,20 +271,19 @@ class HIPCallbackViewSet(GenericViewSet):
 
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        consultation_ids = list(
-            map(
-                lambda x: x.get("care_context_reference"),
-                cached_data.get("care_contexts"),
-            )
-        )
-        consultations = PatientConsultation.objects.filter(
-            external_id__in=consultation_ids,
-        )
+        patient_id = cached_data.get("patient_id")
+        patient = PatientRegistration.objects.filter(external_id=patient_id).first()
+
+        if not patient:
+            logger.warning(f"Patient with ID: {patient_id} not found in the database")
+
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         GatewayService.user_initiated_linking__link__care_context__on_confirm(
             {
                 "request_id": request.headers.get("REQUEST-ID"),
-                "consultations": consultations,
+                "patient": patient,
+                "care_contexts": cached_data.get("care_contexts"),
             }
         )
 
