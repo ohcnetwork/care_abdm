@@ -115,12 +115,15 @@ class Fhir:
         id = str(patient.external_id)
         name = patient.name
         gender = patient.gender
+        dob = patient.abha_number.date_of_birth
 
         return Patient(
             id=id,
             identifier=[Identifier(value=id)],
             name=[HumanName(text=name)],
             gender="male" if gender == 1 else "female" if gender == 2 else "other",
+            birthDate=dob,
+            managingOrganization=self._reference(self._organization(patient.facility)),
         )
 
     @cache_profiles(Practitioner.get_resource_type())
