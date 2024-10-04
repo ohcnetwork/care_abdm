@@ -3,12 +3,12 @@ import logging
 from abdm.models import HealthInformationType
 from abdm.service.helper import ABDMAPIException
 from abdm.service.v3.gateway import GatewayService
+from django.db import transaction
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from care.facility.models import (
     DailyRound,
-    InvestigationSession,
     InvestigationValue,
     PatientConsultation,
     Prescription,
@@ -28,21 +28,23 @@ def create_care_context_on_consultation_creation(
         return
 
     try:
-        GatewayService.link__carecontext(
-            {
-                "patient": patient,
-                "care_contexts": [
-                    {
-                        "hi_type": (
-                            HealthInformationType.DISCHARGE_SUMMARY
-                            if instance.suggestion == SuggestionChoices.A
-                            else HealthInformationType.OP_CONSULTATION
-                        ),
-                        "reference": f"v1::consultation::{instance.external_id}",
-                        "display": f"Encounter on {instance.created_date.date()}",
-                    }
-                ],
-            }
+        transaction.on_commit(
+            lambda: GatewayService.link__carecontext(
+                {
+                    "patient": patient,
+                    "care_contexts": [
+                        {
+                            "hi_type": (
+                                HealthInformationType.DISCHARGE_SUMMARY
+                                if instance.suggestion == SuggestionChoices.A
+                                else HealthInformationType.OP_CONSULTATION
+                            ),
+                            "reference": f"v1::consultation::{instance.external_id}",
+                            "display": f"Encounter on {instance.created_date.date()}",
+                        }
+                    ],
+                }
+            )
         )
     except ABDMAPIException as e:
         # TODO: send a notification to the consultation.created_by to manually link the care_context
@@ -72,17 +74,19 @@ def create_care_context_on_investigation_creation(
         return
 
     try:
-        GatewayService.link__carecontext(
-            {
-                "patient": patient,
-                "care_contexts": [
-                    {
-                        "hi_type": HealthInformationType.DIAGNOSTIC_REPORT,
-                        "reference": f"v1::investigation_session::{instance.session.external_id}",
-                        "display": f"Investigation on {instance.session.created_date.date()}",
-                    }
-                ],
-            }
+        transaction.on_commit(
+            lambda: GatewayService.link__carecontext(
+                {
+                    "patient": patient,
+                    "care_contexts": [
+                        {
+                            "hi_type": HealthInformationType.DIAGNOSTIC_REPORT,
+                            "reference": f"v1::investigation_session::{instance.session.external_id}",
+                            "display": f"Investigation on {instance.session.created_date.date()}",
+                        }
+                    ],
+                }
+            )
         )
     except ABDMAPIException as e:
         logger.warning(
@@ -105,17 +109,19 @@ def create_care_context_on_daily_round_creation(
         return
 
     try:
-        GatewayService.link__carecontext(
-            {
-                "patient": patient,
-                "care_contexts": [
-                    {
-                        "hi_type": HealthInformationType.WELLNESS_RECORD,
-                        "reference": f"v1::daily_round::{instance.external_id}",
-                        "display": f"Daily Round on {instance.created_date.date()}",
-                    }
-                ],
-            }
+        transaction.on_commit(
+            lambda: GatewayService.link__carecontext(
+                {
+                    "patient": patient,
+                    "care_contexts": [
+                        {
+                            "hi_type": HealthInformationType.WELLNESS_RECORD,
+                            "reference": f"v1::daily_round::{instance.external_id}",
+                            "display": f"Daily Round on {instance.created_date.date()}",
+                        }
+                    ],
+                }
+            )
         )
     except ABDMAPIException as e:
         logger.warning(
@@ -140,22 +146,25 @@ def create_care_context_on_prescription_creation(
         or getattr(patient, "abha_number", None) is None
         or Prescription.objects.filter(
             created_date__date=instance.created_date.date()
-        ).exists()
+        ).count()
+        > 1
     ):
         return
 
     try:
-        GatewayService.link__carecontext(
-            {
-                "patient": patient,
-                "care_contexts": [
-                    {
-                        "hi_type": HealthInformationType.PRESCRIPTION,
-                        "reference": f"v1::prescription::{instance.created_date.date()}",
-                        "display": f"Medication Prescribed on {instance.created_date.date()}",
-                    }
-                ],
-            }
+        transaction.on_commit(
+            lambda: GatewayService.link__carecontext(
+                {
+                    "patient": patient,
+                    "care_contexts": [
+                        {
+                            "hi_type": HealthInformationType.PRESCRIPTION,
+                            "reference": f"v1::prescription::{instance.created_date.date()}",
+                            "display": f"Medication Prescribed on {instance.created_date.date()}",
+                        }
+                    ],
+                }
+            )
         )
     except ABDMAPIException as e:
         logger.warning(
