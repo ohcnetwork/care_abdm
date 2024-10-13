@@ -145,7 +145,8 @@ def create_care_context_on_prescription_creation(
         or not patient
         or getattr(patient, "abha_number", None) is None
         or Prescription.objects.filter(
-            created_date__date=instance.created_date.date()
+            consultation=instance.consultation,
+            created_date__date=instance.created_date.date(),
         ).count()
         > 1
     ):

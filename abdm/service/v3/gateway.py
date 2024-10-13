@@ -444,6 +444,7 @@ class GatewayService:
         entries = []
         for care_context in consent.care_contexts:
             care_context_reference = care_context.get("careContextReference", "")
+            patient_reference = care_context.get("patientReference", "")
 
             if "::" not in care_context_reference:
                 care_context_reference = f"v0::consultation::{care_context_reference}"
@@ -483,7 +484,10 @@ class GatewayService:
                 model == "prescription"
                 and HealthInformationType.PRESCRIPTION in consent.hi_types
             ):
-                prescriptions = Prescription.objects.filter(created_date__date=param)
+                prescriptions = Prescription.objects.filter(
+                    created_date__date=param,
+                    consultation__patient__external_id=patient_reference,
+                )
 
                 if not prescriptions.exists():
                     continue
@@ -892,7 +896,7 @@ class GatewayService:
             },
         )
 
-        if response.status_code != 200:
+        if response.status_code != 202:
             raise ABDMAPIException(detail=GatewayService.handle_error(response.json()))
 
         return {}

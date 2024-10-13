@@ -19,6 +19,8 @@ from abdm.service.v3.types.health_id import (
     PhrWebLoginAbhaSearchResponse,
     PhrWebLoginAbhaVerifyBody,
     PhrWebLoginAbhaVerifyResponse,
+    ProfileAccountAbhaCardBody,
+    ProfileAccountAbhaCardResponse,
     ProfileAccountBody,
     ProfileAccountResponse,
     ProfileLoginRequestOtpBody,
@@ -27,8 +29,6 @@ from abdm.service.v3.types.health_id import (
     ProfileLoginVerifyResponse,
     ProfileLoginVerifyUserBody,
     ProfileLoginVerifyUserResponse,
-    ProfileAccountAbhaCardBody,
-    ProfileAccountAbhaCardResponse,
 )
 
 
