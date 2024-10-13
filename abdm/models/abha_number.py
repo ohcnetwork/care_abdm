@@ -1,5 +1,6 @@
-from care.utils.models.base import BaseModel
 from django.db import models
+
+from care.utils.models.base import BaseModel
 
 
 class AbhaNumber(BaseModel):
@@ -33,7 +34,6 @@ class AbhaNumber(BaseModel):
 
     new = models.BooleanField(default=False)
 
-    txn_id = models.TextField(null=True, blank=True)
     access_token = models.TextField(null=True, blank=True)
     refresh_token = models.TextField(null=True, blank=True)
 

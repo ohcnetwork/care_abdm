@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
 import requests
-from abdm.models.base import HealthInformationType, Purpose
+from abdm.models import HealthInformationType, Purpose, Transaction, TransactionType
 from abdm.service.helper import (
     ABDMAPIException,
     cm_id,
@@ -192,12 +192,13 @@ class GatewayService:
             ),
         }
 
+        request_id = uuid()
         path = "/link/carecontext"
         response = GatewayService.request.post(
             path,
             payload,
             headers={
-                "REQUEST-ID": uuid(),
+                "REQUEST-ID": request_id,
                 "TIMESTAMP": timestamp(),
                 "X-CM-ID": cm_id(),
                 "X-HIP-ID": hf_id_from_abha_id(abha_number.abha_number),
@@ -207,6 +208,17 @@ class GatewayService:
 
         if response.status_code != 202:
             raise ABDMAPIException(detail=GatewayService.handle_error(response.json()))
+
+        Transaction.objects.create(
+            reference_id=request_id,
+            type=TransactionType.LINK_CARE_CONTEXT,
+            meta_data={
+                "abha_number": str(abha_number.external_id),
+                "type": "hip_initiated_linking",
+                "care_contexts": list(map(lambda x: x["reference"], care_contexts)),
+            },
+            created_by=data.get("user"),
+        )
 
         return {}
 
@@ -353,12 +365,13 @@ class GatewayService:
                 )
             )
 
+        request_id = uuid()
         path = "/user-initiated-linking/link/care-context/on-confirm"
         response = GatewayService.request.post(
             path,
             payload,
             headers={
-                "REQUEST-ID": uuid(),
+                "REQUEST-ID": request_id,
                 "TIMESTAMP": timestamp(),
                 "X-CM-ID": cm_id(),
             },
@@ -366,6 +379,16 @@ class GatewayService:
 
         if response.status_code != 202:
             raise ABDMAPIException(detail=GatewayService.handle_error(response.json()))
+
+        Transaction.objects.create(
+            reference_id=request_id,
+            type=TransactionType.LINK_CARE_CONTEXT,
+            meta_data={
+                "abha_number": str(patient.abha_number.external_id),
+                "type": "patient_initiated_linking",
+                "care_contexts": care_context_ids,
+            },
+        )
 
         return {}
 
@@ -552,6 +575,15 @@ class GatewayService:
 
         if response.status_code != 202:
             raise ABDMAPIException(detail=GatewayService.handle_error(response.json()))
+
+        Transaction.objects.create(
+            reference_id=data.get("transaction_id"),
+            type=TransactionType.EXCHANGE_DATA,
+            meta_data={
+                "consent_artefact": str(consent.external_id),
+                "is_incoming": False,
+            },
+        )
 
         return {}
 

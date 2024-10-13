@@ -13,7 +13,7 @@ from abdm.api.v3.serializers.health_id import (
     AbhaLoginVerifyOtpSerializer,
     LinkAbhaNumberAndPatientSerializer,
 )
-from abdm.models import AbhaNumber
+from abdm.models import AbhaNumber, Transaction, TransactionType
 from abdm.service.helper import generate_care_contexts_for_existing_data
 from abdm.service.v3.gateway import GatewayService
 from abdm.service.v3.health_id import HealthIdService
@@ -111,6 +111,7 @@ class HealthIdViewSet(GenericViewSet):
                 {
                     "patient": patient,
                     "care_contexts": care_contexts,
+                    "user": request.user,
                 }
             )
 
@@ -186,10 +187,19 @@ class HealthIdViewSet(GenericViewSet):
                 "mobile": abha_profile.get("mobile"),
                 "profile_photo": abha_profile.get("photo"),
                 "new": result.get("isNew"),
-                "txn_id": result.get("txnId"),
                 "access_token": token.get("token"),
                 "refresh_token": token.get("refreshToken"),
             },
+        )
+
+        Transaction.objects.create(
+            reference_id=str(validated_data.get("transaction_id")),
+            type=TransactionType.CREATE_OR_LINK_ABHA_NUMBER,
+            meta_data={
+                "abha_number": str(abha_number.external_id),
+                "method": "create_via_aadhaar_otp",
+            },
+            created_by=request.user,
         )
 
         return Response(
@@ -312,8 +322,16 @@ class HealthIdViewSet(GenericViewSet):
                 "email": profile_result.get("email"),
                 "mobile": profile_result.get("mobile"),
                 "profile_photo": profile_result.get("profilePhoto"),
-                "txn_id": result.get("txnId"),
             },
+        )
+
+        Transaction.objects.create(
+            reference_id=str(validated_data.get("transaction_id")),
+            type=TransactionType.CREATE_ABHA_ADDRESS,
+            meta_data={
+                "abha_number": str(abha_number.external_id),
+            },
+            created_by=request.user,
         )
 
         return Response(
@@ -475,16 +493,25 @@ class HealthIdViewSet(GenericViewSet):
                 "email": profile_result.get("email"),
                 "mobile": profile_result.get("mobile"),
                 "profile_photo": profile_result.get("profilePhoto"),
-                "txn_id": token.get("txn_id"),
                 "access_token": token.get("access_token"),
                 "refresh_token": token.get("refresh_token"),
             },
         )
 
-        serialized_data = AbhaNumberSerializer(abha_number).data
+        Transaction.objects.create(
+            reference_id=token.get("txn_id"),
+            type=TransactionType.CREATE_OR_LINK_ABHA_NUMBER,
+            meta_data={
+                "abha_number": str(abha_number.external_id),
+                "method": "link_via_otp",
+                "type": type,
+                "system": otp_system,
+            },
+            created_by=request.user,
+        )
 
         return Response(
-            {"abha_number": serialized_data, "created": created},
+            {"abha_number": AbhaNumberSerializer(abha_number).data, "created": created},
             status=status.HTTP_200_OK,
         )
 

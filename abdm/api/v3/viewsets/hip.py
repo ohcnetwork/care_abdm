@@ -13,7 +13,13 @@ from abdm.api.v3.serializers.hip import (
     LinkOnCarecontextSerializer,
 )
 from abdm.authentication import ABDMAuthentication
-from abdm.models import AbhaNumber, ConsentArtefact, HealthFacility
+from abdm.models import (
+    AbhaNumber,
+    ConsentArtefact,
+    HealthFacility,
+    Transaction,
+    TransactionType,
+)
 from abdm.service.helper import uuid
 from abdm.service.v3.gateway import GatewayService
 from django.contrib.postgres.search import TrigramSimilarity
@@ -135,6 +141,7 @@ class HIPCallbackViewSet(GenericViewSet):
                 {
                     "patient": abha_number.patient,
                     "care_contexts": cached_data.get("care_contexts", []),
+                    "user": request.user,
                 }
             )
 
@@ -143,6 +150,8 @@ class HIPCallbackViewSet(GenericViewSet):
     @action(detail=False, methods=["POST"], url_path="link/on_carecontext")
     def link__on_carecontext(self, request):
         self.validate_request(request)
+
+        # TODO: delete care context transaction if it failed
 
         # TODO: handle failed link requests
 
@@ -440,7 +449,9 @@ class HIPCallbackViewSet(GenericViewSet):
         ).first()
         # TODO: consider the case of existing patient without abha number
 
+        is_existing_patient = True
         if not abha_number:
+            is_existing_patient = False
             patient = PatientRegistration.objects.create(
                 facility=health_facility.facility,
                 name=patient_data.get("name"),
@@ -523,6 +534,16 @@ class HIPCallbackViewSet(GenericViewSet):
                 "expiry": 600,
                 "request_id": request.headers.get("REQUEST-ID"),
             }
+        )
+
+        Transaction.objects.create(
+            reference_id=uuid(),
+            type=TransactionType.SCAN_AND_SHARE,
+            meta_data={
+                "abha_number": str(abha_number.external_id),
+                "is_existing_patient": is_existing_patient,
+                "token": str(token_number),
+            },
         )
 
         return Response(validated_data, status=status.HTTP_200_OK)

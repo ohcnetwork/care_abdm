@@ -7,7 +7,8 @@ from abdm.models import (
     HealthInformationType,
 )
 
-from care.facility.models import PatientConsultation, PatientRegistration
+from care.facility.models import PatientRegistration
+from care.users.models import User
 
 
 class CareContext(TypedDict):
@@ -29,6 +30,7 @@ class TokenGenerateTokenResponse(TypedDict):
 class LinkCarecontextBody(TypedDict):
     patient: PatientRegistration
     care_contexts: List[CareContext]
+    user: User
 
 
 class LinkCarecontextResponse(TypedDict):

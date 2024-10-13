@@ -43,6 +43,7 @@ def create_care_context_on_consultation_creation(
                             "display": f"Encounter on {instance.created_date.date()}",
                         }
                     ],
+                    "user": instance.created_by,
                 }
             )
         )
@@ -85,6 +86,7 @@ def create_care_context_on_investigation_creation(
                             "display": f"Investigation on {instance.session.created_date.date()}",
                         }
                     ],
+                    "user": instance.session.created_by,
                 }
             )
         )
@@ -120,6 +122,7 @@ def create_care_context_on_daily_round_creation(
                             "display": f"Daily Round on {instance.created_date.date()}",
                         }
                     ],
+                    "user": instance.created_by,
                 }
             )
         )
@@ -164,6 +167,7 @@ def create_care_context_on_prescription_creation(
                             "display": f"Medication Prescribed on {instance.created_date.date()}",
                         }
                     ],
+                    "user": instance.prescribed_by,
                 }
             )
         )

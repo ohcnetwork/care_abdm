@@ -16,7 +16,13 @@ from abdm.api.v3.serializers.hiu import (
 )
 from abdm.api.viewsets.consent import ConsentViewSet
 from abdm.authentication import ABDMAuthentication
-from abdm.models import AbhaNumber, ConsentArtefact, ConsentRequest
+from abdm.models import (
+    AbhaNumber,
+    ConsentArtefact,
+    ConsentRequest,
+    Transaction,
+    TransactionType,
+)
 from abdm.models.base import Status
 from abdm.service.v3.gateway import GatewayService
 from abdm.utils.cipher import Cipher
@@ -444,6 +450,15 @@ class HIUCallbackViewSet(GenericViewSet):
         file.put_object(json.dumps(entries), ContentType="application/json")
         file.upload_completed = True
         file.save()
+
+        Transaction.objects.create(
+            reference_id=validated_data.get("transactionId"),
+            type=TransactionType.EXCHANGE_DATA,
+            meta_data={
+                "consent_artefact": str(artefact.external_id),
+                "is_incoming": True,
+            },
+        )
 
         GatewayService.data_flow__health_information__notify(
             {

@@ -1,6 +1,7 @@
 import json
 import logging
 
+from abdm.models import Transaction, TransactionType
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -46,5 +47,11 @@ class HealthInformationViewSet(GenericViewSet):
             if file.upload_completed:
                 _, content = file.file_contents()
                 contents.extend(content)
+
+        Transaction.objects.create(
+            reference_id=pk,  # consent_arefact.external_id | consent_request.external_id
+            type=TransactionType.ACCESS_DATA,
+            created_by=request.user,
+        )
 
         return Response({"data": json.loads(content)}, status=status.HTTP_200_OK)

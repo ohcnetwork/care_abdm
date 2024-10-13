@@ -1,10 +1,10 @@
 # ModelSerializer
+from abdm.models import AbhaNumber
+from rest_framework import serializers
+
 from care.facility.api.serializers.patient import PatientDetailSerializer
 from care.facility.models import PatientRegistration
 from care.utils.serializer.external_id_field import ExternalIdSerializerField
-from rest_framework import serializers
-
-from abdm.models import AbhaNumber
 
 
 class AbhaNumberSerializer(serializers.ModelSerializer):
@@ -17,4 +17,4 @@ class AbhaNumberSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AbhaNumber
-        exclude = ("deleted", "access_token", "refresh_token", "txn_id")
+        exclude = ("deleted", "access_token", "refresh_token")
