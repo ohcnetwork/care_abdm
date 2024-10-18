@@ -4,11 +4,11 @@ from datetime import datetime
 
 import jwt
 import requests
-from care.users.models import User
+from abdm.settings import plugin_settings as settings
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
 
-from abdm.settings import plugin_settings as settings
+from care.users.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class ABDMAuthentication(JWTAuthentication):
             return None
         jwt_token = self.get_jwt_token(jwt_token)
 
-        abdm_cert_url = f"{settings.ABDM_URL}/gateway/v0.5/certs"
+        abdm_cert_url = f"{settings.ABDM_GATEWAY_URL}/gateway/v0.5/certs"
         validated_token = self.get_validated_token(abdm_cert_url, jwt_token)
 
         return self.get_user(validated_token), validated_token

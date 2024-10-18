@@ -521,8 +521,8 @@ class HealthIdViewSet(GenericViewSet):
 
         abha_address = validated_data.get("abha_address")
 
-        if not abha_address.endswith(f"@{settings.X_CM_ID}"):
-            abha_address = f"{abha_address}@{settings.X_CM_ID}"
+        if not abha_address.endswith(f"@{settings.ABDM_CM_ID}"):
+            abha_address = f"{abha_address}@{settings.ABDM_CM_ID}"
 
         result = HealthIdService.phr__web__login__abha__search(
             {

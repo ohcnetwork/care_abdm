@@ -2,12 +2,11 @@ import json
 import logging
 
 import requests
+from abdm.settings import plugin_settings as settings
 from django.core.cache import cache
 
-from abdm.settings import plugin_settings as settings
-
-ABDM_GATEWAY_URL = settings.ABDM_URL + "/gateway"
-ABDM_TOKEN_URL = ABDM_GATEWAY_URL + "/v0.5/sessions"
+# TODO: switch to v3 api when available
+ABDM_TOKEN_URL = settings.ABDM_GATEWAY_URL + "/gateway/v0.5/sessions"
 ABDM_TOKEN_CACHE_KEY = "abdm_token"
 
 logger = logging.getLogger(__name__)

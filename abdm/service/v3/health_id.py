@@ -30,10 +30,11 @@ from abdm.service.v3.types.health_id import (
     ProfileLoginVerifyUserBody,
     ProfileLoginVerifyUserResponse,
 )
+from abdm.settings import plugin_settings as settings
 
 
 class HealthIdService:
-    request = Request("https://abhasbx.abdm.gov.in/abha/api/v3")
+    request = Request(f"{settings.ABDM_ABHA_URL}/abha/api/v3")
 
     @staticmethod
     def handle_error(error: Dict[str, Any] | str) -> str:

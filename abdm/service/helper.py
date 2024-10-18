@@ -75,7 +75,7 @@ def hf_id_from_abha_id(health_id: str):
 
 
 def cm_id():
-    return settings.X_CM_ID
+    return settings.ABDM_CM_ID
 
 
 def generate_care_contexts_for_existing_data(patient: PatientRegistration):

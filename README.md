@@ -28,13 +28,13 @@ abdm_plug = Plug(
     configs={
         "ABDM_CLIENT_ID": "abdm_client_id",
         "ABDM_CLIENT_SECRET": "abdm_client_secret",
-        "ABDM_URL": "",
-        "HEALTH_SERVICE_API_URL": "",
+        "ABDM_GATEWAY_URL": "",
+        "ABDM_ABHA_URL": "",
         "ABDM_FACILITY_URL": "",
-        "HIP_NAME_PREFIX": "",
-        "HIP_NAME_SUFFIX": "",
+        "ABDM_HIP_NAME_PREFIX": "",
+        "ABDM_HIP_NAME_SUFFIX": "",
         "ABDM_USERNAME": "",
-        "X_CM_ID": "",
+        "ABDM_CM_ID": "",
         "AUTH_USER_MODEL": "users.User"
     },
 )
@@ -48,13 +48,13 @@ The following configurations variables are available for Care Abdm:
 
 - `ABDM_CLIENT_ID`: The client id for the ABDM service.
 - `ABDM_CLIENT_SECRET`: The client secret for the ABDM service.
-- `ABDM_URL`: The URL for the ABDM service APIs.
-- `HEALTH_SERVICE_API_URL`: The URL for the health service APIs.
+- `ABDM_GATEWAY_URL`: The URL for the ABDM service APIs.
+- `ABDM_ABHA_URL`: The URL for the health service APIs.
 - `ABDM_FACILITY_URL`: The URL for the ABDM facility APIs.
-- `HIP_NAME_PREFIX`: The prefix for the HIP name. Used to avoid conflicts while registering a facility as ABDM health facility.
-- `HIP_NAME_SUFFIX`: The suffix for the HIP name. Used to avoid conflicts while registering a facility as ABDM health facility.
+- `ABDM_HIP_NAME_PREFIX`: The prefix for the HIP name. Used to avoid conflicts while registering a facility as ABDM health facility.
+- `ABDM_HIP_NAME_SUFFIX`: The suffix for the HIP name. Used to avoid conflicts while registering a facility as ABDM health facility.
 - `ABDM_USERNAME`: The internal username for the ABDM service. Intended to track the records created via ABDM.
-- `X_CM_ID`: The X-CM-ID header value for the ABDM service.
+- `ABDM_CM_ID`: The X-CM-ID header value for the ABDM service.
 - `AUTH_USER_MODEL`: The user model to use for the ABDM service.
 
 The plugin will try to find the API key from the config first and then from the environment variable.

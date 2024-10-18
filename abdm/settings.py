@@ -1,13 +1,12 @@
 from typing import Any
 
 import environ
+from abdm.apps import PLUGIN_NAME
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.signals import setting_changed
 from django.dispatch import receiver
 from rest_framework.settings import perform_import
-
-from abdm.apps import PLUGIN_NAME
 
 env = environ.Env()
 
@@ -100,10 +99,10 @@ class PluginSettings:  # pragma: no cover
 REQUIRED_SETTINGS = {
     "ABDM_CLIENT_ID",
     "ABDM_CLIENT_SECRET",
-    "ABDM_URL",
-    "HEALTH_SERVICE_API_URL",
+    "ABDM_GATEWAY_URL",
+    "ABDM_ABHA_URL",
     "ABDM_FACILITY_URL",
-    "X_CM_ID",
+    "ABDM_CM_ID",
     "CURRENT_DOMAIN",
     "BACKEND_DOMAIN",
 }
@@ -111,13 +110,13 @@ REQUIRED_SETTINGS = {
 DEFAULTS = {
     "ABDM_CLIENT_ID": "",
     "ABDM_CLIENT_SECRET": "",
-    "ABDM_URL": "https://dev.abdm.gov.in",
-    "HEALTH_SERVICE_API_URL": "https://healthidsbx.abdm.gov.in/api",
+    "ABDM_GATEWAY_URL": "https://dev.abdm.gov.in",
+    "ABDM_ABHA_URL": "https://abhasbx.abdm.gov.in",
     "ABDM_FACILITY_URL": "https://facilitysbx.abdm.gov.in",
-    "HIP_NAME_PREFIX": "",
-    "HIP_NAME_SUFFIX": "",
+    "ABDM_HIP_NAME_PREFIX": "",
+    "ABDM_HIP_NAME_SUFFIX": "",
     "ABDM_USERNAME": "abdm_user_internal",
-    "X_CM_ID": "sbx",
+    "ABDM_CM_ID": "sbx",
     "AUTH_USER_MODEL": "users.User",
     "CURRENT_DOMAIN": "",
     "BACKEND_DOMAIN": "",
