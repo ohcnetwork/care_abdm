@@ -18,6 +18,8 @@ requirements = [
     "django-environ",
     "django-filter",
     "jsonschema",
+    "fhir.resources==6.5.0",
+    "fastecdsa==2.3.2",
 ]
 
 test_requirements = []
