@@ -108,8 +108,8 @@ REQUIRED_SETTINGS = {
 }
 
 DEFAULTS = {
-    "ABDM_CLIENT_ID": "",
-    "ABDM_CLIENT_SECRET": "",
+    "ABDM_CLIENT_ID": "SBX_001",
+    "ABDM_CLIENT_SECRET": "xxxx",
     "ABDM_GATEWAY_URL": "https://dev.abdm.gov.in",
     "ABDM_ABHA_URL": "https://abhasbx.abdm.gov.in",
     "ABDM_FACILITY_URL": "https://facilitysbx.abdm.gov.in",
@@ -118,8 +118,8 @@ DEFAULTS = {
     "ABDM_USERNAME": "abdm_user_internal",
     "ABDM_CM_ID": "sbx",
     "AUTH_USER_MODEL": "users.User",
-    "CURRENT_DOMAIN": "",
-    "BACKEND_DOMAIN": "",
+    "CURRENT_DOMAIN": "https://care.ohc.network",
+    "BACKEND_DOMAIN": "https://careapi.ohc.network",
 }
 
 plugin_settings = PluginSettings(
