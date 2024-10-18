@@ -1,6 +1,7 @@
-import re
-
-from care.utils.queryset.facility import get_facility_queryset
+from abdm.api.serializers.health_facility import HealthFacilitySerializer
+from abdm.models import HealthFacility
+from abdm.service.v3.facility import FacilityService
+from abdm.settings import plugin_settings as settings
 from celery import shared_task
 from dry_rest_permissions.generics import DRYPermissions
 from rest_framework.decorators import action
@@ -14,10 +15,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from abdm.api.serializers.health_facility import HealthFacilitySerializer
-from abdm.models import HealthFacility
-from abdm.settings import plugin_settings as settings
-from abdm.utils.api_call import Facility
+from care.utils.queryset.facility import get_facility_queryset
 
 
 @shared_task
@@ -32,22 +30,9 @@ def register_health_facility_as_service(facility_external_id):
     if health_facility.registered:
         return [True, None]
 
-    clean_facility_name = re.sub(r"[^A-Za-z0-9 ]+", " ", health_facility.facility.name)
-    clean_facility_name = re.sub(r"\s+", " ", clean_facility_name).strip()
-    hip_name = settings.HIP_NAME_PREFIX + clean_facility_name + settings.HIP_NAME_SUFFIX
-    response = Facility().add_update_service(
+    response = FacilityService.add_update_service(
         {
-            "facilityId": health_facility.hf_id,
-            "facilityName": hip_name,
-            "HRP": [
-                {
-                    "bridgeId": settings.ABDM_CLIENT_ID,
-                    "hipName": hip_name,
-                    "type": "HIP",
-                    "active": True,
-                    "alias": ["CARE_HIP"],
-                }
-            ],
+            "health_facility": health_facility,
         }
     )
 
