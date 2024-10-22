@@ -7,7 +7,7 @@ import requests
 from abdm.settings import plugin_settings as settings
 from django.core.cache import cache
 
-ABDM_TOKEN_URL = settings.ABDM_GATEWAY_URL + "/api/hiecm/gateway/v3/sessions"
+ABDM_TOKEN_URL = settings.ABDM_GATEWAY_URL + "/gateway/v3/sessions"
 ABDM_TOKEN_CACHE_KEY = "abdm_token"
 
 logger = logging.getLogger(__name__)

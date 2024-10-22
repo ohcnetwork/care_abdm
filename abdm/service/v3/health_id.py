@@ -34,7 +34,7 @@ from abdm.settings import plugin_settings as settings
 
 
 class HealthIdService:
-    request = Request(f"{settings.ABDM_ABHA_URL}/abha/api/v3")
+    request = Request(f"{settings.ABDM_ABHA_URL}/v3")
 
     @staticmethod
     def handle_error(error: Dict[str, Any] | str) -> str:

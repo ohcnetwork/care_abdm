@@ -62,7 +62,7 @@ from care.facility.models import (
 
 
 class GatewayService:
-    request = Request(f"{settings.ABDM_GATEWAY_URL}/hiecm/api/v3")
+    request = Request(f"{settings.ABDM_GATEWAY_URL}/v3")
 
     @staticmethod
     def handle_error(error: Dict[str, Any] | str) -> str:
