@@ -2,11 +2,16 @@ import json
 import logging
 
 import requests
+from abdm.service.helper import (
+    cm_id,
+    timestamp,
+    uuid,
+)
 from abdm.settings import plugin_settings as settings
 from django.core.cache import cache
 
 # TODO: switch to v3 api when available
-ABDM_TOKEN_URL = settings.ABDM_GATEWAY_URL + "/gateway/v0.5/sessions"
+ABDM_TOKEN_URL = settings.ABDM_GATEWAY_URL + "/api/hiecm/gateway/v3/sessions"
 ABDM_TOKEN_CACHE_KEY = "abdm_token"
 
 logger = logging.getLogger(__name__)
@@ -28,11 +33,15 @@ class Request:
                 {
                     "clientId": settings.ABDM_CLIENT_ID,
                     "clientSecret": settings.ABDM_CLIENT_SECRET,
+                    "grantType": "client_credentials"
                 }
             )
             headers = {
                 "Content-Type": "application/json",
                 "Accept": "application/json",
+                "REQUEST-ID": uuid(),
+                "TIMESTAMP": timestamp(),
+                "X-CM-ID": cm_id(),
             }
 
             response = requests.post(
