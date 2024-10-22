@@ -20,6 +20,7 @@ requirements = [
     "jsonschema",
     "fhir.resources==6.5.0",
     "fastecdsa==2.3.2",
+    "pycryptodome",
 ]
 
 test_requirements = []
