@@ -113,7 +113,6 @@ DEFAULTS = {
     "ABDM_GATEWAY_URL": "https://dev.abdm.gov.in/api/hiecm",
     "ABDM_ABHA_URL": "https://abhasbx.abdm.gov.in/abha/api",
     "ABDM_FACILITY_URL": "https://facilitysbx.abdm.gov.in",
-    "ABDM_SESSION_URL": "https://dev.abdm.gov.in/gateway/v0.5/sessions",
     "ABDM_HIP_NAME_PREFIX": "",
     "ABDM_HIP_NAME_SUFFIX": "",
     "ABDM_USERNAME": "abdm_user_internal",

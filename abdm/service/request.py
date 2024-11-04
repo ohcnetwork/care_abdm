@@ -7,7 +7,8 @@ import requests
 from abdm.settings import plugin_settings as settings
 from django.core.cache import cache
 
-ABDM_TOKEN_URL = settings.ABDM_SESSION_URL or (settings.ABDM_GATEWAY_URL + "/gateway/v3/sessions")
+# TODO: remove this temp fix once sandbox has v3 session access
+ABDM_TOKEN_URL = "https://dev.abdm.gov.in/gateway/v0.5/sessions" if "dev" in settings.ABDM_GATEWAY_URL else settings.ABDM_GATEWAY_URL + "/gateway/v3/sessions"
 ABDM_TOKEN_CACHE_KEY = "abdm_token"
 
 logger = logging.getLogger(__name__)
