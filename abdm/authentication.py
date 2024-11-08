@@ -4,10 +4,11 @@ from datetime import datetime
 
 import jwt
 import requests
-from abdm.settings import plugin_settings as settings
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
 
+from abdm.service.helper import cm_id, timestamp, uuid
+from abdm.settings import plugin_settings as settings
 from care.users.models import User
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,11 @@ logger = logging.getLogger(__name__)
 
 class ABDMAuthentication(JWTAuthentication):
     def open_id_authenticate(self, url, token):
-        public_key = requests.get(url)
+        public_key = requests.get(url, headers={
+            "REQUEST-ID": uuid(),
+            "TIMESTAMP": timestamp(),
+            "X-CM-ID": cm_id()
+        })
         jwk = public_key.json()["keys"][0]
         public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(jwk))
         return jwt.decode(
@@ -31,7 +36,7 @@ class ABDMAuthentication(JWTAuthentication):
             return None
         jwt_token = self.get_jwt_token(jwt_token)
 
-        abdm_cert_url = f"{settings.ABDM_GATEWAY_URL}/gateway/v0.5/certs"
+        abdm_cert_url = f"{settings.ABDM_GATEWAY_URL}/gateway/v3/certs"
         validated_token = self.get_validated_token(abdm_cert_url, jwt_token)
 
         return self.get_user(validated_token), validated_token

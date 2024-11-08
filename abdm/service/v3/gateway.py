@@ -1,8 +1,10 @@
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import requests
+from django.core.cache import cache
+
 from abdm.models import HealthInformationType, Purpose, Transaction, TransactionType
 from abdm.service.helper import (
     ABDMAPIException,
@@ -50,8 +52,6 @@ from abdm.service.v3.types.gateway import (
 from abdm.settings import plugin_settings as settings
 from abdm.utils.cipher import Cipher
 from abdm.utils.fhir_v1 import Fhir
-from django.core.cache import cache
-
 from care.facility.models import (
     DailyRound,
     InvestigationSession,
@@ -62,10 +62,10 @@ from care.facility.models import (
 
 
 class GatewayService:
-    request = Request(f"{settings.ABDM_GATEWAY_URL}/v3")
+    request = Request(settings.ABDM_GATEWAY_URL)
 
     @staticmethod
-    def handle_error(error: Dict[str, Any] | str) -> str:
+    def handle_error(error: dict[str, Any] | str) -> str:
         if isinstance(error, list):
             return GatewayService.handle_error(error[0])
 
@@ -118,7 +118,7 @@ class GatewayService:
             timeout=60 * 5,
         )
 
-        path = "/token/generate-token"
+        path = "/v3/token/generate-token"
         response = GatewayService.request.post(
             path,
             payload,
@@ -193,7 +193,7 @@ class GatewayService:
         }
 
         request_id = uuid()
-        path = "/link/carecontext"
+        path = "/hip/v3/link/carecontext"
         response = GatewayService.request.post(
             path,
             payload,
@@ -226,7 +226,7 @@ class GatewayService:
     def user_initiated_linking__patient__care_context__on_discover(
         data: UserInitiatedLinkingPatientCareContextOnDiscoverBody,
     ) -> UserInitiatedLinkingPatientCareContextOnDiscoverResponse:
-        payload: Dict = {
+        payload: dict = {
             "transactionId": data.get("transaction_id"),
             "response": {
                 "requestId": data.get("request_id"),
@@ -268,7 +268,7 @@ class GatewayService:
                 "message": "Patient not found",
             }
 
-        path = "/user-initiated-linking/patient/care-context/on-discover"
+        path = "/user-initiated-linking/v3/patient/care-context/on-discover"
         response = GatewayService.request.post(
             path,
             payload,
@@ -306,7 +306,7 @@ class GatewayService:
             },
         }
 
-        path = "/user-initiated-linking/link/care-context/on-init"
+        path = "/user-initiated-linking/v3/link/care-context/on-init"
         response = GatewayService.request.post(
             path,
             payload,
@@ -326,7 +326,7 @@ class GatewayService:
     def user_initiated_linking__link__care_context__on_confirm(
         data: UserInitiatedLinkingLinkCareContextOnConfirmBody,
     ) -> UserInitiatedLinkingLinkCareContextOnConfirmResponse:
-        payload: Dict = {
+        payload: dict = {
             "response": {
                 "requestId": data.get("request_id"),
             },
@@ -366,7 +366,7 @@ class GatewayService:
             )
 
         request_id = uuid()
-        path = "/user-initiated-linking/link/care-context/on-confirm"
+        path = "/user-initiated-linking/v3/link/care-context/on-confirm"
         response = GatewayService.request.post(
             path,
             payload,
@@ -404,7 +404,7 @@ class GatewayService:
             "response": {"requestId": data.get("request_id")},
         }
 
-        path = "/consent/request/hip/on-notify"
+        path = "/consent/v3/request/hip/on-notify"
         response = GatewayService.request.post(
             path,
             payload,
@@ -432,7 +432,7 @@ class GatewayService:
             "response": {"requestId": data.get("request_id")},
         }
 
-        path = "/data-flow/health-information/hip/on-request"
+        path = "/data-flow/v3/health-information/hip/on-request"
         response = GatewayService.request.post(
             path,
             payload,
@@ -628,7 +628,7 @@ class GatewayService:
             }
         }
 
-        path = "/data-flow/health-information/notify"
+        path = "/data-flow/v3/health-information/notify"
         response = GatewayService.request.post(
             path,
             payload,
@@ -715,14 +715,14 @@ class GatewayService:
                 "permission": {
                     "accessMode": consent.access_mode,
                     "dateRange": {
-                        "from": consent.from_time.astimezone(timezone.utc).strftime(
+                        "from": consent.from_time.astimezone(UTC).strftime(
                             "%Y-%m-%dT%H:%M:%S.000Z"
                         ),
-                        "to": consent.to_time.astimezone(timezone.utc).strftime(
+                        "to": consent.to_time.astimezone(UTC).strftime(
                             "%Y-%m-%dT%H:%M:%S.000Z"
                         ),
                     },
-                    "dataEraseAt": consent.expiry.astimezone(timezone.utc).strftime(
+                    "dataEraseAt": consent.expiry.astimezone(UTC).strftime(
                         "%Y-%m-%dT%H:%M:%S.000Z"
                     ),
                     "frequency": {
@@ -734,7 +734,7 @@ class GatewayService:
             },
         }
 
-        path = "/consent/request/init"
+        path = "/consent/v3/request/init"
         response = GatewayService.request.post(
             path,
             payload,
@@ -764,8 +764,9 @@ class GatewayService:
             "consentRequestId": str(consent.consent_id),
         }
 
+        path = "/consent/v3/request/status"
         response = GatewayService.request.post(
-            "/consent/request/status",
+            path,
             payload,
             headers={
                 "REQUEST-ID": uuid(),
@@ -802,7 +803,7 @@ class GatewayService:
             "response": {"requestId": data.get("request_id")},
         }
 
-        path = "/consent/request/hiu/on-notify"
+        path = "/consent/v3/request/hiu/on-notify"
         response = GatewayService.request.post(
             path,
             payload,
@@ -831,8 +832,9 @@ class GatewayService:
             "consentId": str(artefact.artefact_id),
         }
 
+        path = "/consent/v3/fetch"
         response = GatewayService.request.post(
-            "/consent/fetch",
+            path,
             payload,
             headers={
                 "REQUEST-ID": uuid(),
@@ -873,7 +875,7 @@ class GatewayService:
                     "cryptoAlg": artefact.key_material_algorithm,
                     "curve": artefact.key_material_curve,
                     "dhPublicKey": {
-                        "expiry": artefact.expiry.astimezone(timezone.utc).strftime(
+                        "expiry": artefact.expiry.astimezone(UTC).strftime(
                             "%Y-%m-%dT%H:%M:%S.000Z"
                         ),
                         "parameters": f"{artefact.key_material_curve}/{artefact.key_material_algorithm}",
@@ -884,8 +886,9 @@ class GatewayService:
             },
         }
 
+        path = "/data-flow/v3/health-information/request"
         response = GatewayService.request.post(
-            "/data-flow/health-information/request",
+            path,
             payload,
             headers={
                 "REQUEST-ID": request_id,
@@ -917,7 +920,7 @@ class GatewayService:
             "response": {"requestId": data.get("request_id")},
         }
 
-        path = "/patient-share/on-share"
+        path = "/patient-share/v3/on-share"
         response = GatewayService.request.post(
             path,
             payload,

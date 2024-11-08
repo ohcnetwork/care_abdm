@@ -1,14 +1,12 @@
 import json
 import logging
-from datetime import datetime, timezone
-from uuid import uuid4
 
 import requests
-from abdm.settings import plugin_settings as settings
 from django.core.cache import cache
 
-# TODO: remove this temp fix once sandbox has v3 session access
-ABDM_TOKEN_URL = "https://dev.abdm.gov.in/gateway/v0.5/sessions" if "dev" in settings.ABDM_GATEWAY_URL else settings.ABDM_GATEWAY_URL + "/gateway/v3/sessions"
+from abdm.settings import plugin_settings as settings
+
+ABDM_TOKEN_URL = settings.ABDM_GATEWAY_URL + "/gateway/v3/sessions"
 ABDM_TOKEN_CACHE_KEY = "abdm_token"
 
 logger = logging.getLogger(__name__)
@@ -24,6 +22,8 @@ class Request:
         return {"X-Token": "Bearer " + user_token}
 
     def auth_header(self):
+        from abdm.service.helper import cm_id, timestamp, uuid
+
         token = cache.get(ABDM_TOKEN_CACHE_KEY)
         if not token:
             data = json.dumps(
@@ -36,9 +36,9 @@ class Request:
             headers = {
                 "Content-Type": "application/json",
                 "Accept": "application/json",
-                "REQUEST-ID": str(uuid4()),
-                "TIMESTAMP": datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                "X-CM-ID": settings.ABDM_CM_ID,
+                "REQUEST-ID": uuid(),
+                "TIMESTAMP": timestamp(),
+                "X-CM-ID": cm_id(),
             }
 
             response = requests.post(
@@ -51,12 +51,11 @@ class Request:
                         f"Invalid content type: {response.headers['Content-Type']}"
                     )
                     return None
-                else:
-                    data = response.json()
-                    token = data["accessToken"]
-                    expires_in = data["expiresIn"]
+                data = response.json()
+                token = data["accessToken"]
+                expires_in = data["expiresIn"]
 
-                    cache.set(ABDM_TOKEN_CACHE_KEY, token, expires_in)
+                cache.set(ABDM_TOKEN_CACHE_KEY, token, expires_in)
             else:
                 logger.error(f"Error while fetching token: {response.text}")
                 return None
