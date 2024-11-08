@@ -19,7 +19,6 @@ CREATE_OR_LINK_ABHA_NUMBER = {
         },
         "required": ["type", "system"],
     },
-    "additionalProperties": False,
     "required": ["abha_number", "method"],
 }
 

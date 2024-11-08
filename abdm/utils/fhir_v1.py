@@ -440,7 +440,7 @@ class Fhir:
                     "code": "2708-6",
                 },
                 "value": {
-                    "value": daily_round.spo2,
+                    "value": daily_round.ventilator_spo2,
                     "unit": "%",
                     "system": "http://unitsofmeasure.org",
                     "code": "%",

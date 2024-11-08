@@ -4,16 +4,12 @@ from datetime import datetime
 
 import jwt
 import requests
-from abdm.settings import plugin_settings as settings
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
 
+from abdm.service.helper import cm_id, timestamp, uuid
+from abdm.settings import plugin_settings as settings
 from care.users.models import User
-from abdm.service.helper import (
-    cm_id,
-    timestamp,
-    uuid,
-)
 
 logger = logging.getLogger(__name__)
 
