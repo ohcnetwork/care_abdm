@@ -9,7 +9,7 @@ from abdm.api.viewsets.consent import ConsentViewSet
 from abdm.api.viewsets.health_facility import HealthFacilityViewSet
 from abdm.api.viewsets.health_information import HealthInformationViewSet
 
-
+abha_number_detail = AbhaNumberViewSet.as_view({'get': 'retrieve'})
 class OptionalSlashRouter(SimpleRouter):
     def __init__(self):
         super().__init__()
@@ -40,4 +40,7 @@ router.register("v3/hiu", HIUViewSet, basename="abdm__v3__hiu")
 router.register("api/v3", HIPCallbackViewSet, basename="abdm__v3__hip__callback")
 router.register("api/v3", HIUCallbackViewSet, basename="abdm__v3__hiu__callback")
 
-urlpatterns = router.urls
+urlpatterns = [
+    path("abdm/abha_number/<str:pk>/", abha_number_detail, name="abdm__abha_number_detail"),
+    path("", include(router.urls)),  
+]
