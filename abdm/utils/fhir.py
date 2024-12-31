@@ -6,34 +6,37 @@ from care.facility.models.file_upload import FileUpload
 from care.facility.models.icd11_diagnosis import REVERSE_CONDITION_VERIFICATION_STATUSES
 from care.facility.models.patient_investigation import InvestigationValue
 from care.facility.static_data.icd11 import get_icd11_diagnosis_object_by_id
-from fhir.resources.address import Address
-from fhir.resources.annotation import Annotation
-from fhir.resources.attachment import Attachment
-from fhir.resources.bundle import Bundle, BundleEntry
-from fhir.resources.careplan import CarePlan
-from fhir.resources.codeableconcept import CodeableConcept
-from fhir.resources.coding import Coding
-from fhir.resources.composition import Composition, CompositionSection
-from fhir.resources.condition import Condition
-from fhir.resources.contactpoint import ContactPoint
-from fhir.resources.diagnosticreport import DiagnosticReport
-from fhir.resources.documentreference import DocumentReference, DocumentReferenceContent
-from fhir.resources.dosage import Dosage
-from fhir.resources.encounter import Encounter, EncounterDiagnosis
-from fhir.resources.humanname import HumanName
-from fhir.resources.identifier import Identifier
-from fhir.resources.immunization import Immunization, ImmunizationProtocolApplied
-from fhir.resources.medication import Medication
-from fhir.resources.medicationrequest import MedicationRequest
-from fhir.resources.meta import Meta
-from fhir.resources.observation import Observation, ObservationComponent
-from fhir.resources.organization import Organization
-from fhir.resources.patient import Patient
-from fhir.resources.period import Period
-from fhir.resources.practitioner import Practitioner
-from fhir.resources.procedure import Procedure
-from fhir.resources.quantity import Quantity
-from fhir.resources.reference import Reference
+from fhir.resources.R4B.address import Address
+from fhir.resources.R4B.annotation import Annotation
+from fhir.resources.R4B.attachment import Attachment
+from fhir.resources.R4B.bundle import Bundle, BundleEntry
+from fhir.resources.R4B.careplan import CarePlan
+from fhir.resources.R4B.codeableconcept import CodeableConcept
+from fhir.resources.R4B.coding import Coding
+from fhir.resources.R4B.composition import Composition, CompositionSection
+from fhir.resources.R4B.condition import Condition
+from fhir.resources.R4B.contactpoint import ContactPoint
+from fhir.resources.R4B.diagnosticreport import DiagnosticReport
+from fhir.resources.R4B.documentreference import (
+    DocumentReference,
+    DocumentReferenceContent,
+)
+from fhir.resources.R4B.dosage import Dosage
+from fhir.resources.R4B.encounter import Encounter, EncounterDiagnosis
+from fhir.resources.R4B.humanname import HumanName
+from fhir.resources.R4B.identifier import Identifier
+from fhir.resources.R4B.immunization import Immunization, ImmunizationProtocolApplied
+from fhir.resources.R4B.medication import Medication
+from fhir.resources.R4B.medicationrequest import MedicationRequest
+from fhir.resources.R4B.meta import Meta
+from fhir.resources.R4B.observation import Observation, ObservationComponent
+from fhir.resources.R4B.organization import Organization
+from fhir.resources.R4B.patient import Patient
+from fhir.resources.R4B.period import Period
+from fhir.resources.R4B.practitioner import Practitioner
+from fhir.resources.R4B.procedure import Procedure
+from fhir.resources.R4B.quantity import Quantity
+from fhir.resources.R4B.reference import Reference
 
 
 class Fhir:
