@@ -704,7 +704,7 @@ class GatewayService:
                 "patient": {"id": consent.patient_abha.health_id},
                 "hiu": {"id": hiu_id},
                 "requester": {
-                    "name": f"{consent.requester.REVERSE_TYPE_MAP[consent.requester.user_type]}, {consent.requester.first_name} {consent.requester.last_name}",
+                    "name": f"{consent.requester.first_name} {consent.requester.last_name}",
                     "identifier": {
                         "type": "CARE Username",
                         "value": consent.requester.username,

@@ -1,10 +1,7 @@
 from base64 import b64encode
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
-from abdm.models import AbhaNumber, HealthInformationType
-from abdm.service.request import Request
-from abdm.settings import plugin_settings as settings
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Hash import SHA1
 from Crypto.PublicKey import RSA
@@ -12,6 +9,10 @@ from django.db.models import Q
 from django.db.models.functions import TruncDate
 from rest_framework.exceptions import APIException
 
+from abdm.models import AbhaNumber, HealthInformationType
+from abdm.service.request import Request
+from abdm.settings import plugin_settings as settings
+from care.emr.models.encounter import Encounter
 from care.facility.models import (
     DailyRound,
     InvestigationSession,
@@ -46,7 +47,7 @@ def encrypt_message(message: str):
 
 
 def timestamp():
-    return datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    return datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
 def uuid():
@@ -64,7 +65,8 @@ def hf_id_from_abha_id(health_id: str):
     if not abha_number.patient:
         ABDMInternalException(detail="Given ABHA Number is not linked to any patient")
 
-    patient_facility = abha_number.patient.last_consultation.facility
+    last_encounter = Encounter.objects.filter(patient=abha_number.patient).last()
+    patient_facility = last_encounter.facility
 
     if not hasattr(patient_facility, "healthfacility"):
         raise ABDMInternalException(
@@ -78,7 +80,9 @@ def cm_id():
     return settings.ABDM_CM_ID
 
 
+# FIXME: Wire it with emr models
 def generate_care_contexts_for_existing_data(patient: PatientRegistration):
+    return []
     care_contexts = []
 
     consultations = PatientConsultation.objects.filter(patient=patient)
