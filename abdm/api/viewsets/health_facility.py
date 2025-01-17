@@ -1,5 +1,4 @@
 from celery import shared_task
-from dry_rest_permissions.generics import DRYPermissions
 from rest_framework.decorators import action
 from rest_framework.mixins import (
     CreateModelMixin,
@@ -72,7 +71,7 @@ class HealthFacilityViewSet(
     serializer_class = HealthFacilitySerializer
     model = HealthFacility
     queryset = HealthFacility.objects.all()
-    permission_classes = (IsAuthenticated, DRYPermissions)
+    permission_classes = (IsAuthenticated,)
     lookup_field = "facility__external_id"
 
     def get_queryset(self):
