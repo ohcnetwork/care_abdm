@@ -13,14 +13,8 @@ from abdm.models import AbhaNumber, HealthInformationType
 from abdm.service.request import Request
 from abdm.settings import plugin_settings as settings
 from care.emr.models.encounter import Encounter
-from care.facility.models import (
-    DailyRound,
-    InvestigationSession,
-    PatientConsultation,
-    PatientRegistration,
-    Prescription,
-    SuggestionChoices,
-)
+from care.emr.models.medication_request import MedicationRequest
+from care.emr.models.patient import Patient
 
 
 class ABDMAPIException(APIException):
@@ -80,60 +74,22 @@ def cm_id():
     return settings.ABDM_CM_ID
 
 
-# FIXME: Wire it with emr models
-def generate_care_contexts_for_existing_data(patient: PatientRegistration):
-    return []
+def generate_care_contexts_for_existing_data(patient: Patient):
     care_contexts = []
 
-    consultations = PatientConsultation.objects.filter(patient=patient)
-    for consultation in consultations:
+    medication_requests = (
+        MedicationRequest.objects.filter(patient=patient)
+        .annotate(day=TruncDate("created_date"))
+        .order_by("day")
+        .distinct("day")
+    )
+    for request in medication_requests:
         care_contexts.append(
             {
-                "reference": f"v1::consultation::{consultation.external_id}",
-                "display": f"Encounter on {consultation.created_date.date()}",
-                "hi_type": (
-                    HealthInformationType.DISCHARGE_SUMMARY
-                    if consultation.suggestion == SuggestionChoices.A
-                    else HealthInformationType.OP_CONSULTATION
-                ),
+                "reference": f"v2::medication_request::{request.created_date.date()}",
+                "display": f"Medication Prescribed on {request.created_date.date()}",
+                "hi_type": HealthInformationType.PRESCRIPTION,
             }
         )
-
-        daily_rounds = DailyRound.objects.filter(consultation=consultation)
-        for daily_round in daily_rounds:
-            care_contexts.append(
-                {
-                    "reference": f"v1::daily_round::{daily_round.external_id}",
-                    "display": f"Daily Round on {daily_round.created_date.date()}",
-                    "hi_type": HealthInformationType.WELLNESS_RECORD,
-                }
-            )
-
-        investigation_sessions = InvestigationSession.objects.filter(
-            investigationvalue__consultation=consultation
-        )
-        for investigation_session in investigation_sessions:
-            care_contexts.append(
-                {
-                    "reference": f"v1::investigation_session::{investigation_session.external_id}",
-                    "display": f"Investigation on {investigation_session.created_date.date()}",
-                    "hi_type": HealthInformationType.DIAGNOSTIC_REPORT,
-                }
-            )
-
-        prescriptions = (
-            Prescription.objects.filter(consultation=consultation)
-            .annotate(day=TruncDate("created_date"))
-            .order_by("day")
-            .distinct("day")
-        )
-        for prescription in prescriptions:
-            care_contexts.append(
-                {
-                    "reference": f"v1::prescription::{prescription.created_date.date()}",
-                    "display": f"Medication Prescribed on {prescription.created_date.date()}",
-                    "hi_type": HealthInformationType.PRESCRIPTION,
-                }
-            )
 
     return care_contexts
