@@ -8,7 +8,8 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from abdm.models import Transaction, TransactionType
-from care.facility.models.file_upload import FileUpload
+from care.emr.models.file_upload import FileUpload
+from care.emr.resources.file_upload.spec import FileCategoryChoices, FileTypeChoices
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,8 @@ class HealthInformationViewSet(GenericViewSet):
     def retrieve(self, request, pk):
         files = FileUpload.objects.filter(
             Q(internal_name__contains=f"{pk}.json") | Q(associating_id=pk),
-            file_type=FileUpload.FileType.ABDM_HEALTH_INFORMATION.value,
+            file_type=FileTypeChoices.patient.value,
+            file_category=FileCategoryChoices.health_information.value,
             upload_completed=True,
         )
 
@@ -45,7 +47,7 @@ class HealthInformationViewSet(GenericViewSet):
         contents = []
         for file in files:
             if file.upload_completed:
-                _, content = file.file_contents()
+                _, content = file.files_manager.file_contents(file)
                 contents.extend(content)
 
         Transaction.objects.create(
