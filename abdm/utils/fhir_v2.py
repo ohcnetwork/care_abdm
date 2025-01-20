@@ -9,7 +9,8 @@ from fhir.resources.R4B.coding import Coding
 from fhir.resources.R4B.composition import Composition, CompositionSection
 from fhir.resources.R4B.condition import Condition
 from fhir.resources.R4B.contactpoint import ContactPoint
-from fhir.resources.R4B.dosage import Dosage
+from fhir.resources.R4B.dosage import Dosage, DosageDoseAndRate
+from fhir.resources.R4B.duration import Duration
 from fhir.resources.R4B.encounter import Encounter, EncounterDiagnosis
 from fhir.resources.R4B.humanname import HumanName
 from fhir.resources.R4B.identifier import Identifier
@@ -18,8 +19,12 @@ from fhir.resources.R4B.organization import Organization
 from fhir.resources.R4B.patient import Patient
 from fhir.resources.R4B.period import Period
 from fhir.resources.R4B.practitioner import Practitioner
+from fhir.resources.R4B.quantity import Quantity
+from fhir.resources.R4B.range import Range
+from fhir.resources.R4B.ratio import Ratio
 from fhir.resources.R4B.reference import Reference
 from fhir.resources.R4B.resource import Resource
+from fhir.resources.R4B.timing import Timing, TimingRepeat
 
 from abdm.models.health_facility import HealthFacility as HealthFacilityModel
 from abdm.service.helper import uuid
@@ -31,9 +36,13 @@ from care.emr.models.medication_request import (
     MedicationRequest as MedicationRequestModel,
 )
 from care.emr.models.patient import Patient as PatientModel
+from care.emr.resources.base import Coding as CodingSpec
 from care.emr.resources.condition.spec import ConditionSpecRead
 from care.emr.resources.encounter.spec import EncounterRetrieveSpec
 from care.emr.resources.facility.spec import FacilityRetrieveSpec
+from care.emr.resources.medication.request.spec import (
+    DosageInstruction as DosageInstructionSpec,
+)
 from care.emr.resources.medication.request.spec import MedicationRequestReadSpec
 from care.emr.resources.patient.spec import PatientRetrieveSpec
 from care.emr.resources.user.spec import UserRetrieveSpec
@@ -274,6 +283,22 @@ class Fhir:
             }
         )
 
+    def _coding(self, coding: CodingSpec | None):
+        if coding is None:
+            return None
+
+        return Coding(
+            code=coding.code,
+            display=coding.display,
+            system=coding.system,
+        )
+
+    def _coding_to_codable_concept(self, coding: CodingSpec | None):
+        if coding is None:
+            return None
+
+        return CodeableConcept(coding=[self._coding(coding)])
+
     @cache_profiles(MedicationRequest.get_resource_type())
     def _medication_request(self, request: MedicationRequestModel):
         request_spec = MedicationRequestReadSpec.serialize(request)
@@ -284,9 +309,88 @@ class Fhir:
             identifier=[Identifier(value=id)],
             status=request_spec.status,
             intent=request_spec.intent,
-            authoredOn=request_spec.authored_on.isoformat(),
+            authoredOn=request_spec.created_date.isoformat(),
             dosageInstruction=[
-                Dosage(**dosage) for dosage in request_spec.dosage_instruction
+                Dosage(
+                    sequence=dosage_spec.sequence,
+                    text=dosage_spec.text,
+                    patientInstruction=dosage_spec.patient_instruction,
+                    additionalInstruction=[
+                        self._coding_to_codable_concept(instruction)
+                        for instruction in dosage_spec.additional_instruction
+                    ],
+                    asNeededBoolean=dosage_spec.as_needed_boolean,
+                    asNeededCodeableConcept=self._coding_to_codable_concept(
+                        dosage_spec.as_needed_for
+                    ),
+                    timing=Timing(
+                        repeat=TimingRepeat(
+                            frequency=dosage_spec.timing.repeat.frequency,
+                            period=dosage_spec.timing.repeat.period,
+                            periodUnit=dosage_spec.timing.repeat.period_unit,
+                            boundsDuration=Duration(
+                                value=dosage_spec.timing.repeat.bounds_duration.value,
+                                unit=dosage_spec.timing.repeat.bounds_duration.unit,
+                            )
+                            if dosage_spec.timing.repeat.bounds_duration
+                            else None,
+                        )
+                        if dosage_spec.timing.repeat
+                        else None,
+                        code=self._coding_to_codable_concept(dosage_spec.timing.code),
+                    ),
+                    site=self._coding_to_codable_concept(dosage_spec.site),
+                    route=self._coding_to_codable_concept(dosage_spec.route),
+                    method=self._coding_to_codable_concept(dosage_spec.method),
+                    doseAndRate=[
+                        DosageDoseAndRate(
+                            type=CodeableConcept(
+                                coding=[
+                                    Coding(
+                                        system="http://terminology.hl7.org/CodeSystem/dose-rate-type",
+                                        code=dosage_spec.dose_and_rate.type,
+                                    )
+                                ]
+                            ),
+                            doseRange=Range(
+                                low=dosage_spec.dose_and_rate.dose_range.low,
+                                high=dosage_spec.dose_and_rate.dose_range.high,
+                            )
+                            if dosage_spec.dose_and_rate.dose_range
+                            else None,
+                            doseQuantity=Quantity(
+                                value=dosage_spec.dose_and_rate.dose_quantity.value,
+                                unit=dosage_spec.dose_and_rate.dose_quantity.unit.display,
+                                system=dosage_spec.dose_and_rate.dose_quantity.unit.system,
+                                code=dosage_spec.dose_and_rate.dose_quantity.unit.code,
+                            )
+                            if dosage_spec.dose_and_rate.dose_quantity
+                            else None,
+                        )
+                    ],
+                    maxDosePerPeriod=Ratio(
+                        numerator=Quantity(
+                            value=dosage_spec.max_dose_per_period.low.value,
+                            unit=dosage_spec.max_dose_per_period.low.unit.display,
+                            system=dosage_spec.max_dose_per_period.low.unit.system,
+                            code=dosage_spec.max_dose_per_period.low.unit.code,
+                        )
+                        if dosage_spec.max_dose_per_period.low
+                        else None,
+                        denominator=Quantity(
+                            value=dosage_spec.max_dose_per_period.high.value,
+                            unit=dosage_spec.max_dose_per_period.high.unit.display,
+                            system=dosage_spec.max_dose_per_period.high.unit.system,
+                            code=dosage_spec.max_dose_per_period.high.unit.code,
+                        )
+                        if dosage_spec.max_dose_per_period.high
+                        else None,
+                    )
+                    if dosage_spec.max_dose_per_period
+                    else None,
+                )
+                for dosage in request_spec.dosage_instruction
+                for dosage_spec in [DosageInstructionSpec(**dosage)]
             ],
             note=[Annotation(text=request_spec.note)] if request_spec.note else None,
             medicationCodeableConcept=CodeableConcept(

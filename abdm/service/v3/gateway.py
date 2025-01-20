@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import requests
 from django.core.cache import cache
 
 from abdm.models import HealthInformationType, Purpose, Transaction, TransactionType
@@ -476,15 +477,15 @@ class GatewayService:
                 model == "medication_request"
                 and HealthInformationType.PRESCRIPTION in consent.hi_types
             ):
-                requests = MedicationRequest.objects.filter(
+                medication_requests = MedicationRequest.objects.filter(
                     created_date__date=param,
                     patient__external_id=patient_reference,
                 )
 
-                if not requests.exists():
+                if not medication_requests.exists():
                     continue
 
-                fhir_data = Fhir().create_prescription_record(list(requests))
+                fhir_data = Fhir().create_prescription_record(list(medication_requests))
 
             else:
                 continue
@@ -529,6 +530,7 @@ class GatewayService:
             path,
             json=payload,
             headers=headers,
+            timeout=20,
         )
 
         if response.status_code != 202:
