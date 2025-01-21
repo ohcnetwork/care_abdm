@@ -6,7 +6,7 @@ from abdm.models import AbhaNumber
 from care.emr.models.patient import Patient
 from care.emr.resources.patient.spec import PatientRetrieveSpec
 from care.utils.serializers.fields import ExternalIdSerializerField
-from care_abdm.abdm.api.serializers.base import EMRPydanticModelField
+from abdm.api.serializers.base import EMRPydanticModelField
 
 
 class AbhaNumberSerializer(serializers.ModelSerializer):

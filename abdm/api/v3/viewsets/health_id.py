@@ -26,8 +26,8 @@ from abdm.service.v3.health_id import HealthIdService
 from abdm.settings import plugin_settings as settings
 from care.emr.models.patient import Patient
 from care.security.authorization.base import AuthorizationController
-from care_abdm.abdm.service.helper import generate_care_contexts_for_existing_data
-from care_abdm.abdm.service.v3.gateway import GatewayService
+from abdm.service.helper import generate_care_contexts_for_existing_data
+from abdm.service.v3.gateway import GatewayService
 
 
 class HealthIdViewSet(GenericViewSet):
