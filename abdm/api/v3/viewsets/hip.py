@@ -457,6 +457,9 @@ class HIPCallbackViewSet(GenericViewSet):
                     ],
                 )
             )
+            phone_number = (
+                "+91" + patient_data.get("phoneNumber", "").replace(" ", "")[-10:]
+            )
             patient = Patient.objects.create(
                 name=patient_data.get("name"),
                 gender={
@@ -468,8 +471,8 @@ class HIPCallbackViewSet(GenericViewSet):
                     f"{patient_data.get('yearOfBirth')}-{patient_data.get('monthOfBirth')}-{patient_data.get('dayOfBirth')}",
                     "%Y-%m-%d",
                 ),
-                phone_number=patient_data.get("phoneNumber"),
-                emergency_phone_number=patient_data.get("phoneNumber"),
+                phone_number=phone_number,
+                emergency_phone_number=phone_number,
                 address=full_address,
                 permanent_address=full_address,
                 pincode=patient_data.get("address").get("pinCode"),
