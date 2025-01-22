@@ -51,8 +51,8 @@ from abdm.service.v3.types.gateway import (
 )
 from abdm.settings import plugin_settings as settings
 from abdm.utils.cipher import Cipher
-from abdm.utils.fhir_v2 import Fhir
 from care.emr.models.medication_request import MedicationRequest
+from care_abdm.abdm.utils.fhir import Fhir
 
 
 class GatewayService:
