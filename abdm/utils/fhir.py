@@ -1,20 +1,28 @@
+import base64
 from datetime import UTC, datetime
 from functools import wraps
 
 from fhir.resources.R4B.address import Address
+from fhir.resources.R4B.allergyintolerance import AllergyIntolerance
 from fhir.resources.R4B.annotation import Annotation
+from fhir.resources.R4B.attachment import Attachment
 from fhir.resources.R4B.bundle import Bundle, BundleEntry
 from fhir.resources.R4B.codeableconcept import CodeableConcept
 from fhir.resources.R4B.coding import Coding
 from fhir.resources.R4B.composition import Composition, CompositionSection
 from fhir.resources.R4B.condition import Condition
 from fhir.resources.R4B.contactpoint import ContactPoint
+from fhir.resources.R4B.documentreference import (
+    DocumentReference,
+    DocumentReferenceContent,
+)
 from fhir.resources.R4B.dosage import Dosage, DosageDoseAndRate
 from fhir.resources.R4B.duration import Duration
 from fhir.resources.R4B.encounter import Encounter, EncounterDiagnosis
 from fhir.resources.R4B.humanname import HumanName
 from fhir.resources.R4B.identifier import Identifier
 from fhir.resources.R4B.medicationrequest import MedicationRequest
+from fhir.resources.R4B.medicationstatement import MedicationStatement
 from fhir.resources.R4B.organization import Organization
 from fhir.resources.R4B.patient import Patient
 from fhir.resources.R4B.period import Period
@@ -29,13 +37,21 @@ from fhir.resources.R4B.timing import Timing, TimingRepeat
 from abdm.models.health_facility import HealthFacility as HealthFacilityModel
 from abdm.service.helper import uuid
 from abdm.settings import plugin_settings as settings
+from care.emr.models.allergy_intolerance import (
+    AllergyIntolerance as AllergyIntoleranceModel,
+)
 from care.emr.models.base import EMRBaseModel
 from care.emr.models.condition import Condition as ConditionModel
 from care.emr.models.encounter import Encounter as EncounterModel
+from care.emr.models.file_upload import FileUpload as FileUploadModel
 from care.emr.models.medication_request import (
     MedicationRequest as MedicationRequestModel,
 )
+from care.emr.models.medication_statement import (
+    MedicationStatement as MedicationStatementModel,
+)
 from care.emr.models.patient import Patient as PatientModel
+from care.emr.resources.allergy_intolerance.spec import AllergyIntrolanceSpecRead
 from care.emr.resources.base import Coding as CodingSpec
 from care.emr.resources.condition.spec import ConditionSpecRead
 from care.emr.resources.encounter.spec import EncounterRetrieveSpec
@@ -44,6 +60,7 @@ from care.emr.resources.medication.request.spec import (
     DosageInstruction as DosageInstructionSpec,
 )
 from care.emr.resources.medication.request.spec import MedicationRequestReadSpec
+from care.emr.resources.medication.statement.spec import MedicationStatementReadSpec
 from care.emr.resources.patient.spec import PatientRetrieveSpec
 from care.emr.resources.user.spec import UserRetrieveSpec
 from care.facility.models import Facility as FacilityModel
@@ -319,7 +336,6 @@ class Fhir:
                         self._coding_to_codable_concept(instruction)
                         for instruction in dosage_spec.additional_instruction
                     ],
-                    asNeededBoolean=dosage_spec.as_needed_boolean,
                     asNeededCodeableConcept=self._coding_to_codable_concept(
                         dosage_spec.as_needed_for
                     ),
@@ -338,7 +354,9 @@ class Fhir:
                         if dosage_spec.timing.repeat
                         else None,
                         code=self._coding_to_codable_concept(dosage_spec.timing.code),
-                    ),
+                    )
+                    if dosage_spec.timing
+                    else None,
                     site=self._coding_to_codable_concept(dosage_spec.site),
                     route=self._coding_to_codable_concept(dosage_spec.route),
                     method=self._coding_to_codable_concept(dosage_spec.method),
@@ -400,6 +418,104 @@ class Fhir:
             requester=self._reference(self._practitioner(request.created_by)),
         )
 
+    @cache_profiles(MedicationStatement.get_resource_type())
+    def _medication_statement(self, statement: MedicationStatementModel):
+        statement_spec = MedicationStatementReadSpec.serialize(statement)
+        id = str(statement_spec.id)
+
+        return MedicationStatement(
+            id=id,
+            identifier=[Identifier(value=id)],
+            status=statement_spec.status,
+            medicationCodeableConcept=self._coding_to_codable_concept(
+                statement_spec.medication
+            ),
+            dosage=[
+                Dosage(
+                    text=statement_spec.dosage_text,
+                )
+            ]
+            if statement_spec.dosage_text
+            else None,
+            effectivePeriod=Period(**statement_spec.effective_period)
+            if statement_spec.effective_period
+            else None,
+            subject=self._reference(self._patient(statement.patient)),
+            note=[Annotation(text=statement_spec.note)]
+            if statement_spec.note
+            else None,
+        )
+
+    @cache_profiles(DocumentReference.get_resource_type())
+    def _document_reference(self, file: FileUploadModel):
+        id = str(file.external_id)
+        content_type, content = file.files_manager.file_contents(file)
+
+        return DocumentReference(
+            id=id,
+            identifier=[Identifier(value=id)],
+            status="current",
+            type=CodeableConcept(text=file.internal_name.split(".")[0]),
+            content=[
+                DocumentReferenceContent(
+                    attachment=Attachment(
+                        contentType=content_type, data=base64.b64encode(content)
+                    )
+                )
+            ],
+            author=[self._reference(self._practitioner(file.created_by))],
+        )
+
+    @cache_profiles(AllergyIntolerance.get_resource_type())
+    def _allergy_intolerance(self, allergy: AllergyIntoleranceModel):
+        id = str(allergy.external_id)
+        allergy_spec = AllergyIntrolanceSpecRead.serialize(allergy)
+
+        return AllergyIntolerance(
+            id=id,
+            identifier=[Identifier(value=id)],
+            verificationStatus=CodeableConcept(
+                coding=[
+                    Coding(
+                        system="http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",
+                        code=allergy_spec.verification_status,
+                    )
+                ]
+            ),
+            clinicalStatus=CodeableConcept(
+                coding=[
+                    Coding(
+                        system="http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+                        code=allergy_spec.clinical_status,
+                    )
+                ]
+            ),
+            category=[allergy_spec.category] if allergy_spec.category else None,
+            criticality=allergy_spec.criticality,
+            code=CodeableConcept(
+                coding=[Coding(**allergy_spec.code)],
+            ),
+            recordedDate=allergy_spec.recorded_date.isoformat()
+            if allergy.recorded_date
+            else allergy_spec.created_date.isoformat(),
+            lastOccurrence=allergy_spec.last_occurrence.isoformat()
+            if allergy.last_occurrence
+            else None,
+            onsetDateTime=allergy_spec.onset.onset_datetime.isoformat()
+            if allergy_spec.onset.get("onset_datetime")
+            else None,
+            onsetAge=allergy_spec.onset.onset_age
+            if allergy_spec.onset.get("onset_age")
+            else None,
+            onsetString=allergy_spec.onset.onset_string
+            if allergy_spec.onset.get("onset_string")
+            else None,
+            patient=self._reference(self._patient(allergy.patient)),
+            encounter=self._reference(self._encounter(allergy.encounter)),
+            recorder=self._reference(self._practitioner(allergy.created_by)),
+            note=[Annotation(text=allergy_spec.note)] if allergy_spec.note else None,
+        )
+
     def _prescription_composition(
         self, requests: list[MedicationRequestModel], care_context_id: str
     ):
@@ -445,6 +561,118 @@ class Fhir:
             ],
         )
 
+    def _op_consult_composition(self, encounter: EncounterModel, care_context_id: str):
+        return Composition(
+            id=care_context_id,
+            identifier=Identifier(value=care_context_id),
+            status="final",
+            type=CodeableConcept(
+                coding=[
+                    Coding(
+                        system="https://projecteka.in/sct",
+                        code="371530004",
+                        display="Clinical consultation report",
+                    )
+                ]
+            ),
+            title="Medications",
+            date=datetime.now(UTC).isoformat(),
+            section=list(
+                filter(
+                    lambda section: section.entry and len(section.entry) > 0,
+                    [
+                        CompositionSection(
+                            title="Chief Complaints",
+                            code=CodeableConcept(
+                                coding=[
+                                    Coding(
+                                        system="http://snomed.info/sct",
+                                        code="422843007",
+                                        display="Chief complaint section",
+                                    )
+                                ]
+                            ),
+                            entry=[
+                                self._reference(self._condition(condition))
+                                for condition in ConditionModel.objects.filter(
+                                    encounter=encounter
+                                )
+                            ],
+                        ),
+                        CompositionSection(
+                            title="Allergies",
+                            code=CodeableConcept(
+                                coding=[
+                                    Coding(
+                                        system="http://snomed.info/sct",
+                                        code="722446000",
+                                        display="Allergy record",
+                                    )
+                                ]
+                            ),
+                            entry=[
+                                self._reference(self._allergy_intolerance(allergy))
+                                for allergy in AllergyIntoleranceModel.objects.filter(
+                                    encounter=encounter
+                                )
+                            ],
+                        ),
+                        CompositionSection(
+                            title="Medication summary document",
+                            code=CodeableConcept(
+                                coding=[
+                                    Coding(
+                                        system="http://snomed.info/sct",
+                                        code="721912009",
+                                        display="Medication summary document",
+                                    )
+                                ]
+                            ),
+                            entry=[
+                                *[
+                                    self._reference(self._medication_request(request))
+                                    for request in MedicationRequestModel.objects.filter(
+                                        encounter=encounter
+                                    )
+                                ],
+                                *[
+                                    self._reference(
+                                        self._medication_statement(statement)
+                                    )
+                                    for statement in MedicationStatementModel.objects.filter(
+                                        encounter=encounter
+                                    )
+                                ],
+                            ],
+                        ),
+                        CompositionSection(
+                            title="Document Reference",
+                            code=CodeableConcept(
+                                coding=[
+                                    Coding(
+                                        system="http://snomed.info/sct",
+                                        code="371530004",
+                                        display="Clinical consultation report",
+                                    )
+                                ]
+                            ),
+                            entry=[
+                                self._reference(self._document_reference(file))
+                                for file in FileUploadModel.objects.filter(
+                                    associating_id=encounter.external_id
+                                )
+                            ],
+                        ),
+                    ],
+                )
+            ),
+            subject=self._reference(self._patient(encounter.patient)),
+            encounter=self._reference(
+                self._encounter(encounter, include_diagnosis=True)
+            ),
+            author=[self._reference(self._organization(encounter.facility))],
+        )
+
     def _bundle_entry(self, resource: Resource):
         return BundleEntry(fullUrl=self._reference_url(resource), resource=resource)
 
@@ -463,6 +691,24 @@ class Fhir:
             entry=[
                 self._bundle_entry(
                     self._prescription_composition(prescriptions, care_context_id)
+                ),
+                *[self._bundle_entry(profile) for profile in self.cached_profiles()],
+            ],
+        )
+
+    def create_op_consult_record(
+        self, encounter: EncounterModel, care_context_id: str = uuid()
+    ):
+        return Bundle(
+            id=care_context_id,
+            identifier=Identifier(
+                value=care_context_id, system=f"{CARE_IDENTIFIER_SYSTEM}/bundle"
+            ),
+            type="document",
+            timestamp=datetime.now(UTC).isoformat(),
+            entry=[
+                self._bundle_entry(
+                    self._op_consult_composition(encounter, care_context_id)
                 ),
                 *[self._bundle_entry(profile) for profile in self.cached_profiles()],
             ],
