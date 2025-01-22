@@ -460,6 +460,10 @@ class HIPCallbackViewSet(GenericViewSet):
             phone_number = (
                 "+91" + patient_data.get("phoneNumber", "").replace(" ", "")[-10:]
             )
+            date_of_birth = datetime.strptime(
+                f"{patient_data.get('yearOfBirth')}-{patient_data.get('monthOfBirth')}-{patient_data.get('dayOfBirth')}",
+                "%Y-%m-%d",
+            ).date()
             patient = Patient.objects.create(
                 name=patient_data.get("name"),
                 gender={
@@ -467,10 +471,7 @@ class HIPCallbackViewSet(GenericViewSet):
                     "F": GenderChoices.female,
                     "O": GenderChoices.non_binary,
                 }.get(patient_data.get("gender"), "O"),
-                date_of_birth=datetime.strptime(
-                    f"{patient_data.get('yearOfBirth')}-{patient_data.get('monthOfBirth')}-{patient_data.get('dayOfBirth')}",
-                    "%Y-%m-%d",
-                ),
+                date_of_birth=date_of_birth,
                 phone_number=phone_number,
                 emergency_phone_number=phone_number,
                 address=full_address,
@@ -485,10 +486,7 @@ class HIPCallbackViewSet(GenericViewSet):
                 health_id=patient_data.get("abhaAddress"),
                 name=patient_data.get("name"),
                 gender=patient_data.get("gender"),
-                date_of_birth=datetime.strptime(
-                    f"{patient_data.get('yearOfBirth')}-{patient_data.get('monthOfBirth')}-{patient_data.get('dayOfBirth')}",
-                    "%Y-%m-%d",
-                ),
+                date_of_birth=date_of_birth,
                 address=patient_data.get("address").get("line"),
                 district=patient_data.get("address").get("district"),
                 state=patient_data.get("address").get("state"),
