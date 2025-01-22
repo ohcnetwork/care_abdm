@@ -32,7 +32,7 @@ from abdm.models import (
 from abdm.service.helper import uuid
 from abdm.service.v3.gateway import GatewayService
 from care.emr.models.patient import Patient
-from care.facility.models import District, State
+from care.emr.resources.patient.spec import GenderChoices
 
 logger = logging.getLogger(__name__)
 
@@ -445,27 +445,35 @@ class HIPCallbackViewSet(GenericViewSet):
         is_existing_patient = True
         if not abha_number:
             is_existing_patient = False
+
+            full_address = ", ".join(
+                filter(
+                    lambda x: x,
+                    [
+                        patient_data.get("address").get("line"),
+                        patient_data.get("address").get("district"),
+                        patient_data.get("address").get("state"),
+                        patient_data.get("address").get("pinCode"),
+                    ],
+                )
+            )
             patient = Patient.objects.create(
-                facility=health_facility.facility,
                 name=patient_data.get("name"),
-                gender={"M": 1, "F": 2, "O": 3, None: None}.get(
-                    patient_data.get("gender"), None
-                ),
+                gender={
+                    "M": GenderChoices.male,
+                    "F": GenderChoices.female,
+                    "O": GenderChoices.non_binary,
+                }.get(patient_data.get("gender"), "O"),
                 date_of_birth=datetime.strptime(
                     f"{patient_data.get('yearOfBirth')}-{patient_data.get('monthOfBirth')}-{patient_data.get('dayOfBirth')}",
                     "%Y-%m-%d",
                 ),
                 phone_number=patient_data.get("phoneNumber"),
                 emergency_phone_number=patient_data.get("phoneNumber"),
-                address=patient_data.get("address").get("line"),
+                address=full_address,
+                permanent_address=full_address,
                 pincode=patient_data.get("address").get("pinCode"),
-                state=State.objects.filter(
-                    name__iexact=patient_data.get("address").get("state")
-                ).first(),
-                district=District.objects.filter(
-                    name__iexact=patient_data.get("address").get("district")
-                ).first(),
-                is_antenatal=False,
+                geo_organization=None,
             )
 
             abha_number = AbhaNumber.objects.create(
@@ -485,17 +493,7 @@ class HIPCallbackViewSet(GenericViewSet):
                 mobile=patient_data.get("phoneNumber"),
             )
 
-        # FIXME: Uncomment the following code after the patient transfer API is implemented
-        # else:
-        #     serializer = PatientTransferSerializer(
-        #         abha_number.patient,
-        #         data={
-        #             "facility": str(health_facility.facility.external_id),
-        #             "year_of_birth": patient_data.get("yearOfBirth"),
-        #         },
-        #     )
-        #     serializer.is_valid(raise_exception=True)
-        #     serializer.save()
+        # TODO: add the patient to the facility queue
 
         cached_data = cache.get("abdm_patient_share__" + abha_number.health_id)
 
