@@ -1,4 +1,4 @@
-from base64 import b64encode
+from base64 import b64encode, b64decode
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -29,23 +29,29 @@ class ABDMInternalException(APIException):
     default_detail = "An internal error occured while trying to communicate with ABDM"
 
 
-def encrypt_message(message: str):
-    rsa_public_key = RSA.importKey(
-        Request("https://healthidsbx.abdm.gov.in/api/v1").get("/auth/cert").text.strip()
-    )
-
-    cipher = PKCS1_OAEP.new(rsa_public_key, hashAlgo=SHA1)
-    encrypted_message = cipher.encrypt(message.encode())
-
-    return b64encode(encrypted_message).decode()
-
-
 def timestamp():
     return datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
 def uuid():
     return str(uuid4())
+
+
+def encrypt_message(message: str):
+    rsa_public_key = RSA.importKey(
+        b64decode(
+            Request(settings.ABDM_ABHA_URL).get(
+                "/v3/profile/public/certificate",
+                None,
+                { "TIMESTAMP": timestamp(), "REQUEST-ID": uuid() }
+            ).json().get("publicKey", "")
+        )
+    )
+
+    cipher = PKCS1_OAEP.new(rsa_public_key, hashAlgo=SHA1)
+    encrypted_message = cipher.encrypt(message.encode())
+
+    return b64encode(encrypted_message).decode()
 
 
 def hf_id_from_abha_id(health_id: str):
