@@ -10,7 +10,7 @@ from rest_framework.viewsets import GenericViewSet
 from abdm.api.serializers.consent import ConsentRequestSerializer
 from abdm.models.consent import ConsentRequest
 from abdm.service.v3.gateway import GatewayService
-from care.utils.queryset.facility import get_facility_queryset
+from care.emr.models.organization import FacilityOrganizationUser
 from config.auth_views import CaptchaRequiredException
 from config.ratelimit import USER_READABLE_RATE_LIMIT_TIME, ratelimit
 
@@ -45,7 +45,13 @@ class ConsentViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin):
 
     def get_queryset(self):
         queryset = self.queryset
-        facilities = get_facility_queryset(self.request.user)
+        facilities = [
+            organization.organization.facility
+            for organization in FacilityOrganizationUser.objects.filter(
+                user=self.request.user
+            ).select_related("organization__facility")
+        ]
+
         return queryset.filter(requester__facility__in=facilities).distinct()
 
     def create(self, request):

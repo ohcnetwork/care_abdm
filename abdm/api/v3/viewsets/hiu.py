@@ -1,6 +1,13 @@
 import json
 import logging
 
+from django.db.models import Q
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
+
 from abdm.api.serializers.consent import ConsentRequestSerializer
 from abdm.api.v3.serializers.hiu import (
     ConsentFetchSerializer,
@@ -26,14 +33,8 @@ from abdm.models import (
 from abdm.models.base import Status
 from abdm.service.v3.gateway import GatewayService
 from abdm.utils.cipher import Cipher
-from django.db.models import Q
-from rest_framework import status
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet
-
-from care.facility.models import FileUpload
+from care.emr.models.file_upload import FileUpload
+from care.emr.resources.file_upload.spec import FileCategoryChoices, FileTypeChoices
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +199,7 @@ class HIUCallbackViewSet(GenericViewSet):
             logger.warning(
                 f"Validation failed for request data: {request.data}, "
                 f"Path: {request.path}, Method: {request.method}, "
-                f"Error details: {str(exception)}"
+                f"Error details: {exception!s}"
             )
 
             raise exception
@@ -444,12 +445,15 @@ class HIUCallbackViewSet(GenericViewSet):
 
         file = FileUpload(
             internal_name=f"{validated_data.get('pageNumber')} / {validated_data.get('pageCount')} -- {artefact.external_id}.json",
-            file_type=FileUpload.FileType.ABDM_HEALTH_INFORMATION.value,
+            file_type=FileTypeChoices.patient.value,
+            file_category=FileCategoryChoices.health_information.value,
             associating_id=artefact.consent_request.external_id,
         )
-        file.put_object(json.dumps(entries), ContentType="application/json")
+        file.files_manager.put_object(
+            file, json.dumps(entries), ContentType="application/json"
+        )
         file.upload_completed = True
-        file.save()
+        file.save(skip_internal_name=True)
 
         Transaction.objects.create(
             reference_id=validated_data.get("transactionId"),
