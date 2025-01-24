@@ -129,8 +129,20 @@ class Fhir:
             identifier=[Identifier(value=id)],
             name=[HumanName(text=patient_spec.name)],
             telecom=[
-                ContactPoint(system="phone", value=patient_spec.phone_number),
-                ContactPoint(system="phone", value=patient_spec.emergency_phone_number),
+                *(
+                    [ContactPoint(system="phone", value=patient_spec.phone_number)]
+                    if patient_spec.phone_number
+                    else []
+                ),
+                *(
+                    [
+                        ContactPoint(
+                            system="phone", value=patient_spec.emergency_phone_number
+                        )
+                    ]
+                    if patient_spec.emergency_phone_number
+                    else []
+                ),
             ],
             gender=patient_spec.gender,
             birthDate=patient.abha_number.date_of_birth,
@@ -171,8 +183,16 @@ class Fhir:
             ],
             name=[HumanName(text=user.full_name)],
             telecom=[
-                ContactPoint(system="phone", value=user_spec.phone_number),
-                ContactPoint(system="email", value=user_spec.email),
+                *(
+                    [ContactPoint(system="phone", value=user_spec.phone_number)]
+                    if user_spec.phone_number
+                    else []
+                ),
+                *(
+                    [ContactPoint(system="email", value=user_spec.email)]
+                    if user_spec.email
+                    else []
+                ),
             ],
             gender=user_spec.gender,
             birthDate=user.date_of_birth,
@@ -217,7 +237,13 @@ class Fhir:
                 )
             ],
             name=facility_spec.name,
-            telecom=[ContactPoint(system="phone", value=facility_spec.phone_number)],
+            telecom=[
+                *(
+                    [ContactPoint(system="phone", value=facility_spec.phone_number)]
+                    if facility_spec.phone_number
+                    else []
+                )
+            ],
             address=[
                 Address(
                     line=[facility_spec.address],
@@ -335,7 +361,9 @@ class Fhir:
                     additionalInstruction=[
                         self._coding_to_codable_concept(instruction)
                         for instruction in dosage_spec.additional_instruction
-                    ],
+                    ]
+                    if dosage_spec.additional_instruction
+                    else None,
                     asNeededCodeableConcept=self._coding_to_codable_concept(
                         dosage_spec.as_needed_for
                     ),
