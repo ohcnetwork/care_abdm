@@ -1,5 +1,6 @@
 from django.db.models import Q
 from django.http import Http404
+from drf_spectacular.utils import extend_schema
 from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
@@ -10,6 +11,7 @@ from abdm.service.helper import uuid
 from care.security.authorization.base import AuthorizationController
 
 
+@extend_schema(tags=["ABDM: ABHA Number"])
 class AbhaNumberViewSet(
     GenericViewSet,
     CreateModelMixin,

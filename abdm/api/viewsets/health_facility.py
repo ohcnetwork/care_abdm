@@ -1,4 +1,5 @@
 from celery import shared_task
+from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.mixins import (
     CreateModelMixin,
@@ -61,6 +62,7 @@ def register_health_facility_as_service(facility_external_id):
     return [False, None]
 
 
+@extend_schema(tags=["ABDM: Health Facility"])
 class HealthFacilityViewSet(
     GenericViewSet,
     CreateModelMixin,

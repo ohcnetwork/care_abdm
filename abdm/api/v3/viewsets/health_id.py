@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.db.models import Q
 from django.http import HttpResponse
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -22,14 +23,15 @@ from abdm.api.v3.serializers.health_id import (
     LinkAbhaNumberAndPatientSerializer,
 )
 from abdm.models import AbhaNumber, Transaction, TransactionType
+from abdm.service.helper import generate_care_contexts_for_existing_data
+from abdm.service.v3.gateway import GatewayService
 from abdm.service.v3.health_id import HealthIdService
 from abdm.settings import plugin_settings as settings
 from care.emr.models.patient import Patient
 from care.security.authorization.base import AuthorizationController
-from abdm.service.helper import generate_care_contexts_for_existing_data
-from abdm.service.v3.gateway import GatewayService
 
 
+@extend_schema(tags=["ABDM: Health ID"])
 class HealthIdViewSet(GenericViewSet):
     permission_classes = (IsAuthenticated,)
 

@@ -5,6 +5,7 @@ from functools import reduce
 from django.contrib.postgres.search import TrigramSimilarity
 from django.core.cache import cache
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -37,6 +38,7 @@ from care.emr.resources.patient.spec import GenderChoices
 logger = logging.getLogger(__name__)
 
 
+@extend_schema(tags=["ABDM: HIP"])
 class HIPViewSet(GenericViewSet):
     permission_classes = (IsAuthenticated,)
 
@@ -50,6 +52,7 @@ class HIPViewSet(GenericViewSet):
         )
 
 
+@extend_schema(tags=["ABDM: HIP Callback"])
 class HIPCallbackViewSet(GenericViewSet):
     permission_classes = (IsAuthenticated,)
     authentication_classes = [ABDMAuthentication]

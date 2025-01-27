@@ -1,6 +1,7 @@
 import logging
 
 from django_filters import rest_framework as filters
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
 from rest_framework.permissions import IsAuthenticated
@@ -35,6 +36,7 @@ class ConsentRequestFilter(filters.FilterSet):
         fields = ["patient", "health_id", "purpose"]
 
 
+@extend_schema(tags=["ABDM: Consent"])
 class ConsentViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin):
     serializer_class = ConsentRequestSerializer
     model = ConsentRequest

@@ -2,6 +2,7 @@ import json
 import logging
 
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -15,6 +16,7 @@ from care.emr.resources.file_upload.spec import FileCategoryChoices, FileTypeCho
 logger = logging.getLogger(__name__)
 
 
+@extend_schema(tags=["ABDM: Health Information"])
 class HealthInformationViewSet(GenericViewSet):
     permission_classes = (IsAuthenticated,)
 

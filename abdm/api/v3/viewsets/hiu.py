@@ -2,6 +2,7 @@ import json
 import logging
 
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -39,6 +40,7 @@ from care.emr.resources.file_upload.spec import FileCategoryChoices, FileTypeCho
 logger = logging.getLogger(__name__)
 
 
+@extend_schema(tags=["ABDM: HIU"])
 class HIUViewSet(GenericViewSet):
     permission_classes = (IsAuthenticated,)
 
@@ -171,6 +173,7 @@ class HIUViewSet(GenericViewSet):
         )
 
 
+@extend_schema(tags=["ABDM: HIU Callback"])
 class HIUCallbackViewSet(GenericViewSet):
     permission_classes = (IsAuthenticated,)
     authentication_classes = [ABDMAuthentication]
