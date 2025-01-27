@@ -2,6 +2,7 @@ import base64
 from datetime import UTC, datetime
 from functools import wraps
 
+from django.db.models import Q
 from fhir.resources.R4B.address import Address
 from fhir.resources.R4B.allergyintolerance import AllergyIntolerance
 from fhir.resources.R4B.annotation import Annotation
@@ -23,6 +24,7 @@ from fhir.resources.R4B.humanname import HumanName
 from fhir.resources.R4B.identifier import Identifier
 from fhir.resources.R4B.medicationrequest import MedicationRequest
 from fhir.resources.R4B.medicationstatement import MedicationStatement
+from fhir.resources.R4B.observation import Observation
 from fhir.resources.R4B.organization import Organization
 from fhir.resources.R4B.patient import Patient
 from fhir.resources.R4B.period import Period
@@ -50,6 +52,7 @@ from care.emr.models.medication_request import (
 from care.emr.models.medication_statement import (
     MedicationStatement as MedicationStatementModel,
 )
+from care.emr.models.observation import Observation as ObservationModel
 from care.emr.models.patient import Patient as PatientModel
 from care.emr.resources.allergy_intolerance.spec import AllergyIntrolanceSpecRead
 from care.emr.resources.base import Coding as CodingSpec
@@ -61,6 +64,7 @@ from care.emr.resources.medication.request.spec import (
 )
 from care.emr.resources.medication.request.spec import MedicationRequestReadSpec
 from care.emr.resources.medication.statement.spec import MedicationStatementReadSpec
+from care.emr.resources.observation.spec import ObservationReadSpec
 from care.emr.resources.patient.spec import PatientRetrieveSpec
 from care.emr.resources.user.spec import UserRetrieveSpec
 from care.facility.models import Facility as FacilityModel
@@ -544,6 +548,66 @@ class Fhir:
             note=[Annotation(text=allergy_spec.note)] if allergy_spec.note else None,
         )
 
+    @cache_profiles(Observation.get_resource_type())
+    def _observation(self, observation: ObservationModel):
+        id = str(observation.external_id)
+        observation_spec = ObservationReadSpec.serialize(observation)
+
+        return Observation(
+            id=id,
+            identifier=[Identifier(value=id)],
+            status=observation_spec.status,
+            category=[CodeableConcept(coding=[Coding(**observation_spec.category)])]
+            if observation_spec.category
+            else None,
+            code=CodeableConcept(coding=[Coding(**observation_spec.main_code)])
+            if observation_spec.main_code
+            else CodeableConcept(**observation_spec.alternate_coding),
+            valueString=observation_spec.value.get("value")
+            if observation_spec.value.get("value")
+            else None,
+            valueCodeableConcept=CodeableConcept(
+                coding=[Coding(**observation_spec.value.get("value_code"))]
+            )
+            if observation_spec.value.get("value_code")
+            else None,
+            valueQuantity=Quantity(
+                value=observation_spec.value.get("value_quantity", {}).get("value"),
+                unit=observation_spec.value.get("value_quantity", {})
+                .get("unit", {})
+                .get("display"),
+                system=observation_spec.value.get("value_quantity", {})
+                .get("unit", {})
+                .get("system"),
+                code=observation_spec.value.get("value_quantity", {})
+                .get("unit", {})
+                .get("code"),
+            )
+            if observation_spec.value.get("value_quantity")
+            else None,
+            effectiveDateTime=observation_spec.effective_datetime.isoformat(),
+            method=CodeableConcept(coding=[Coding(**observation_spec.method)])
+            if observation_spec.method
+            else None,
+            bodySite=CodeableConcept(coding=[Coding(**observation_spec.body_site)])
+            if observation_spec.body_site
+            else None,
+            referenceRange=[
+                Range(**rrange) for rrange in observation_spec.reference_range
+            ],
+            encounter=self._reference(self._encounter(observation.encounter))
+            if observation.encounter
+            else None,
+            note=[Annotation(text=observation_spec.note)]
+            if observation_spec.note
+            else None,
+            interpretation=CodeableConcept(
+                text=observation_spec.interpretation,
+            )
+            if observation_spec.interpretation
+            else None,
+        )
+
     def _prescription_composition(
         self, requests: list[MedicationRequestModel], care_context_id: str
     ):
@@ -628,6 +692,24 @@ class Fhir:
                             ],
                         ),
                         CompositionSection(
+                            title="Physical Examination",
+                            code=CodeableConcept(
+                                coding=[
+                                    Coding(
+                                        system="http://snomed.info/sct",
+                                        code="425044008",
+                                        display="Physical exam section",
+                                    )
+                                ]
+                            ),
+                            entry=[
+                                self._reference(self._observation(observation))
+                                for observation in ObservationModel.objects.filter(
+                                    encounter=encounter
+                                ).exclude(Q(main_code__isnull=True) | Q(main_code={}))
+                            ],
+                        ),
+                        CompositionSection(
                             title="Allergies",
                             code=CodeableConcept(
                                 coding=[
@@ -646,7 +728,7 @@ class Fhir:
                             ],
                         ),
                         CompositionSection(
-                            title="Medication summary document",
+                            title="Medications",
                             code=CodeableConcept(
                                 coding=[
                                     Coding(
