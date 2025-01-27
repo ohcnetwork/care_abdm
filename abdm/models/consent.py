@@ -12,6 +12,7 @@ from abdm.models.base import (
     Status,
 )
 from abdm.models.json_schema import CARE_CONTEXTS
+from abdm.settings import plugin_settings as settings
 from abdm.utils.cipher import Cipher
 from care.emr.models.file_upload import FileUpload
 from care.emr.resources.file_upload.spec import FileCategoryChoices, FileTypeChoices
@@ -126,7 +127,8 @@ class ConsentArtefact(Consent):
             file = FileUpload.objects.filter(
                 internal_name__contains=f"{self.external_id}.json",
                 file_type=FileTypeChoices.patient.value,
-                file_category=FileCategoryChoices.health_information.value,
+                file_category=FileCategoryChoices.unspecified.value,
+                created_by__username=settings.ABDM_USERNAME,
             ).first()
 
             if file:

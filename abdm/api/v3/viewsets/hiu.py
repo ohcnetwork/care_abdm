@@ -446,8 +446,9 @@ class HIUCallbackViewSet(GenericViewSet):
         file = FileUpload(
             internal_name=f"{validated_data.get('pageNumber')} / {validated_data.get('pageCount')} -- {artefact.external_id}.json",
             file_type=FileTypeChoices.patient.value,
-            file_category=FileCategoryChoices.health_information.value,
+            file_category=FileCategoryChoices.unspecified.value,
             associating_id=artefact.consent_request.external_id,
+            created_by=request.user,
         )
         file.files_manager.put_object(
             file, json.dumps(entries), ContentType="application/json"

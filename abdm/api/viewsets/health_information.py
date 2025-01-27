@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from abdm.models import Transaction, TransactionType
+from abdm.settings import plugin_settings as settings
 from care.emr.models.file_upload import FileUpload
 from care.emr.resources.file_upload.spec import FileCategoryChoices, FileTypeChoices
 
@@ -21,8 +22,9 @@ class HealthInformationViewSet(GenericViewSet):
         files = FileUpload.objects.filter(
             Q(internal_name__contains=f"{pk}.json") | Q(associating_id=pk),
             file_type=FileTypeChoices.patient.value,
-            file_category=FileCategoryChoices.health_information.value,
+            file_category=FileCategoryChoices.unspecified.value,
             upload_completed=True,
+            created_by__username=settings.ABDM_USERNAME,
         )
 
         if files.count() == 0:
