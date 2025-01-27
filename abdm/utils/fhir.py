@@ -54,9 +54,9 @@ from care.emr.models.medication_statement import (
 )
 from care.emr.models.observation import Observation as ObservationModel
 from care.emr.models.patient import Patient as PatientModel
-from care.emr.resources.allergy_intolerance.spec import AllergyIntrolanceSpecRead
+from care.emr.resources.allergy_intolerance.spec import AllergyIntoleranceReadSpec
 from care.emr.resources.base import Coding as CodingSpec
-from care.emr.resources.condition.spec import ConditionSpecRead
+from care.emr.resources.condition.spec import ConditionReadSpec
 from care.emr.resources.encounter.spec import EncounterRetrieveSpec
 from care.emr.resources.facility.spec import FacilityRetrieveSpec
 from care.emr.resources.medication.request.spec import (
@@ -259,7 +259,7 @@ class Fhir:
 
     @cache_profiles(Condition.get_resource_type())
     def _condition(self, condition: ConditionModel):
-        condition_spec = ConditionSpecRead.serialize(condition)
+        condition_spec = ConditionReadSpec.serialize(condition)
         id = str(condition_spec.id)
 
         return Condition(
@@ -501,7 +501,7 @@ class Fhir:
     @cache_profiles(AllergyIntolerance.get_resource_type())
     def _allergy_intolerance(self, allergy: AllergyIntoleranceModel):
         id = str(allergy.external_id)
-        allergy_spec = AllergyIntrolanceSpecRead.serialize(allergy)
+        allergy_spec = AllergyIntoleranceReadSpec.serialize(allergy)
 
         return AllergyIntolerance(
             id=id,
